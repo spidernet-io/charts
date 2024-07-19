@@ -61,40 +61,20 @@ jobs:
         id: qemu
         uses: docker/setup-qemu-action@v3.0.0
 
-      - name: Get Code Version Before Checkout
-        id: get_event_version
-        continue-on-error: false
+      - name: Get Info
         run: |
           echo '${{ toJSON(github) }}'
-          # when CI trigger by PR and call this yaml, it appears ${{ github.event_name == 'pull_request' }}
-          #if ${{ inputs.ref != '' }} ; then
-              echo "call by workflow_call"
-              echo "code_sha=${{ inputs.code_sha }}" >> $GITHUB_ENV
-              echo "push_image=${{ inputs.push_image }}" >> $GITHUB_ENV
-              echo "image_name=${{ inputs.image_name }}" >> $GITHUB_ENV
-              echo "dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}" >> $GITHUB_ENV
-              echo "build_platform=${{ inputs.build_platform }}" >> $GITHUB_ENV
-              echo "upload_artifact=${{ inputs.upload_artifact }}" >> $GITHUB_ENV
-              echo "upload_image_artifact_name=image-${{ inputs.code_sha }}" >> $GITHUB_ENV
-          
-              # spidernet-io/charts -> spidernet-io
-              org_name=$( awk -F'/' '{print $1}'  <<< "${{ env.IMAGE_REPO }}" )
-              # ghcr.io/spidernet-io/rdma-tools
-              echo "image_full_name=${{ env.ONLINE_REGISTER }}/${org_name}/${{ inputs.image_name }}" >> $GITHUB_ENV
-          
-              image_tag=${{ inputs.image_tag }}
-              if [ -n "${image_tag}" ]; then
-                 echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_ENV
-              else
-                 dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}
-                 image_tag=$( git ls-tree --full-tree HEAD -- ${dockerfile_dirctory} | awk '{ print $3 }' )
-                 [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
-                 echo "image_tag=${image_tag}" >> $GITHUB_ENV
-              fi
-          #else
-          #    echo "unexpected event: ${{ github.event_name }}"
-          #    exit 1
-          #fi
+          echo "code_sha=${{ inputs.code_sha }}" >> $GITHUB_ENV
+          echo "push_image=${{ inputs.push_image }}" >> $GITHUB_ENV
+          echo "image_name=${{ inputs.image_name }}" >> $GITHUB_ENV
+          echo "dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}" >> $GITHUB_ENV
+          echo "build_platform=${{ inputs.build_platform }}" >> $GITHUB_ENV
+          echo "upload_artifact=${{ inputs.upload_artifact }}" >> $GITHUB_ENV
+          echo "upload_image_artifact_name=image-${{ inputs.code_sha }}" >> $GITHUB_ENV
+          # spidernet-io/charts -> spidernet-io
+          org_name=$( awk -F'/' '{print $1}'  <<< "${{ env.IMAGE_REPO }}" )
+          # ghcr.io/spidernet-io/rdma-tools
+          echo "image_full_name=${{ env.ONLINE_REGISTER }}/${org_name}/${{ inputs.image_name }}" >> $GITHUB_ENV
 
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -110,6 +90,15 @@ jobs:
           GIT_COMMIT_TIME=$( git show -s --format='format:%aI')
           echo "commitver=${GIT_COMMIT_VERSION}" >> $GITHUB_ENV
           echo "committime=${GIT_COMMIT_TIME}" >> $GITHUB_ENV
+          image_tag=${{ inputs.image_tag }}
+          if [ -n "${image_tag}" ]; then
+             echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_ENV
+          else
+             dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}
+             image_tag=$( git ls-tree --full-tree HEAD -- ${dockerfile_dirctory} | awk '{ print $3 }' )
+             [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
+             echo "image_tag=${image_tag}" >> $GITHUB_ENV
+          fi
 
       - name: Login to online register
         uses: docker/login-action@v3.2.0
