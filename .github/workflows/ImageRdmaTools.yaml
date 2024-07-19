@@ -57,12 +57,6 @@ jobs:
             echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
             echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
-            if [ -n "${{ github.event.inputs.baseImageCudaVersion }}" ] ; then
-                baseImageCudaVersion=${{ github.event.inputs.baseImageCudaVersion }}
-            fi
-            if [ -n "${{ github.event.inputs.baseImageOSVersion }}" ] ; then
-                baseImageOSVersion=${{ github.event.inputs.baseImageOSVersion }}
-            fi
           elif ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
             echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
@@ -92,6 +86,12 @@ jobs:
         id: arg
         run: |
           echo "get base image"
+          if [ -n "${{ github.event.inputs.baseImageCudaVersion }}" ] ; then
+              baseImageCudaVersion=${{ github.event.inputs.baseImageCudaVersion }}
+          fi
+          if [ -n "${{ github.event.inputs.baseImageOSVersion }}" ] ; then
+              baseImageOSVersion=${{ github.event.inputs.baseImageOSVersion }}
+          fi
           if [ -n "${baseImageCudaVersion}" ] && [ -n "${baseImageOSVersion}" ] ; then
               export BASEIMAGE_CUDA_VERISON=${baseImageCudaVersion}
               export BASEIMAGE_OS_VERISON=${baseImageOSVersion}
