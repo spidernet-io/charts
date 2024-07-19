@@ -5,6 +5,20 @@ ARG BASE_IMAGE
 
 #========== root image ==============
 FROM ${BASE_IMAGE} as rootfs
+
+# TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
+ARG TARGETOS
+# TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
+ARG TARGETARCH
+
+ARG GIT_COMMIT_VERSION
+ENV GIT_COMMIT_VERSION=${GIT_COMMIT_VERSION}
+ARG GIT_COMMIT_TIME
+ENV GIT_COMMIT_TIME=${GIT_COMMIT_TIME}
+ARG VERSION
+ENV VERSION=${VERSION}
+
+
 COPY /install-tools.sh /install-tools.sh
 COPY /test.sh /test.sh
 COPY /tools /tools
@@ -24,21 +38,4 @@ RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
 
-#============
-FROM scratch
-LABEL maintainer="maintainer@spidernet-io"
-
-# TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
-ARG TARGETOS
-# TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
-ARG TARGETARCH
-
-ARG GIT_COMMIT_VERSION
-ENV GIT_COMMIT_VERSION=${GIT_COMMIT_VERSION}
-ARG GIT_COMMIT_TIME
-ENV GIT_COMMIT_TIME=${GIT_COMMIT_TIME}
-ARG VERSION
-ENV VERSION=${VERSION}
-
-COPY --from=rootfs / /
 CMD ["/usr/bin/sleep","infinity"]
