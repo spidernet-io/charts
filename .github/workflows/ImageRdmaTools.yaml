@@ -85,6 +85,7 @@ jobs:
       - name: Getting Build Arg
         id: arg
         run: |
+          set -x
           echo "get base image"
           if [ -n "${{ github.event.inputs.baseImageCudaVersion }}" ] ; then
               baseImageCudaVersion=${{ github.event.inputs.baseImageCudaVersion }}
@@ -104,8 +105,7 @@ jobs:
           if [ -n "${image_tag}" ]; then
              echo "image_tag=${BASEIMAGE_CUDA_VERISON}-${{ inputs.image_tag }}" >> $GITHUB_ENV
           else
-             dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}
-             image_tag=$( git ls-tree --full-tree HEAD -- ${dockerfile_dirctory} | awk '{ print $3 }' )
+             image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
              [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
              echo "image_tag=${BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
           fi
