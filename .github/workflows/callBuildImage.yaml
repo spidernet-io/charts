@@ -12,9 +12,8 @@ on:
       code_sha:
         required: true
         type: string
-      # if empty, use the commit id of dockerfile_dirctory
       image_tag:
-        required: false
+        required: true
         type: string
       push_image:
         required: true
@@ -29,6 +28,9 @@ on:
         required: true
         type: string
       upload_artifact:
+        required: true
+        type: string
+      baseImageFullName:
         required: true
         type: string
     outputs:
@@ -70,6 +72,7 @@ jobs:
           echo "dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}" >> $GITHUB_ENV
           echo "build_platform=${{ inputs.build_platform }}" >> $GITHUB_ENV
           echo "upload_artifact=${{ inputs.upload_artifact }}" >> $GITHUB_ENV
+          echo "baseImageFullName=${{ inputs.baseImageFullName }}" >> $GITHUB_ENV
           echo "upload_image_artifact_name=image-$( date +%Y%m%d%H%M%S%N )" >> $GITHUB_ENV
           # spidernet-io/charts -> spidernet-io
           org_name=$( awk -F'/' '{print $1}'  <<< "${{ env.IMAGE_REPO }}" )
@@ -125,6 +128,7 @@ jobs:
             GIT_COMMIT_VERSION=${{ env.commitver }}
             GIT_COMMIT_TIME=${{ env.committime }}
             VERSION=${{ env.code_sha }}
+            BASE_IMAGE=${{ env.baseImageFullName }}
 
       # Upload artifact race images tar
       - name: Upload image tar

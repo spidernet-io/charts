@@ -1,10 +1,10 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
-ARG UBUNTU_IMAGE=docker.io/library/ubuntu:22.04
+ARG BASE_IMAGE
 
 #========== root image ==============
-FROM ${UBUNTU_IMAGE} as rootfs
+FROM ${BASE_IMAGE} as rootfs
 COPY /install-tools.sh /install-tools.sh
 COPY /test.sh /test.sh
 COPY /tools /tools
