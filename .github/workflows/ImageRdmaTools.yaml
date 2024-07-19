@@ -22,10 +22,6 @@ on:
         description: 'sha, branch or tag for code'
         required: true
         default: main
-      imageTag:
-        description: 'image tag'
-        required: true
-        default: v1.0.0
 
 permissions: write-all
 

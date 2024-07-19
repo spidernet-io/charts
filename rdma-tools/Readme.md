@@ -4,6 +4,10 @@ images including kinds of RDMA tools for debugging
 
 ## release chart and images
 
+the image will automatically be generated after the PR is merged to branch main
+
+release the chart 
+
 ```shell
 git tag rdma-tools-vXX.YY.ZZ 
 git push --tags
