@@ -24,6 +24,7 @@ which ibnetdiscover &>/dev/null
 which ibhosts &>/dev/null
 which ibping &>/dev/null
 which iperf3 &>/dev/null
+which ping &>/dev/null
 
 
 #which nvidia-smi &>/dev/null

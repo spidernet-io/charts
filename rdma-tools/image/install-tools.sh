@@ -26,6 +26,8 @@ packages=(
   # ibdiagnet ibnetdiscover
   ibutils
   iperf3
+  # ping
+  iputils-ping
 )
 
 

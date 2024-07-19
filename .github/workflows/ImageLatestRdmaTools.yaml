@@ -31,8 +31,6 @@ jobs:
           echo '${{ toJSON(github) }}'
           if ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
-            image_tag=${GITHUB_REF##*/}
-            image_tag=$( grep -o -E "v[0-9]+.[0-9]+.[0-9]+" <<< "${image_tag}" )
             echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
             echo "image_tag=latest" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV

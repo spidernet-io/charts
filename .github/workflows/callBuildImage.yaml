@@ -12,8 +12,9 @@ on:
       code_sha:
         required: true
         type: string
+      # if empty, use the commit id of dockerfile_dirctory
       image_tag:
-        required: true
+        required: false
         type: string
       push_image:
         required: true
@@ -68,7 +69,6 @@ jobs:
           if ${{ inputs.ref != '' }}; then
               echo "call by workflow_call"
               echo "code_sha=${{ inputs.code_sha }}" >> $GITHUB_ENV
-              echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_ENV
               echo "push_image=${{ inputs.push_image }}" >> $GITHUB_ENV
               echo "image_name=${{ inputs.image_name }}" >> $GITHUB_ENV
               echo "dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}" >> $GITHUB_ENV
@@ -81,6 +81,17 @@ jobs:
               # ghcr.io/spidernet-io/rdma-tools
               echo "image_full_name=${{ env.ONLINE_REGISTER }}/${org_name}/${{ inputs.image_name }}" >> $GITHUB_ENV
           
+              image_tag=${{ inputs.image_tag }}
+              if [ -n "${image_tag}" ]; then
+                 echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_ENV
+              else
+                 dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}
+                 image_tag=$( git ls-tree --full-tree HEAD -- ${dockerfile_dirctory} | awk '{ print $3 }' )
+                 [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
+                 echo "image_tag=${image_tag}" >> $GITHUB_ENV
+              fi
+
+
           else
               echo "unexpected event: ${{ github.event_name }}"
               exit 1
