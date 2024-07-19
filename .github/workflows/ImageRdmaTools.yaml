@@ -81,13 +81,6 @@ jobs:
             echo "build_platform=linux/amd64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
           fi
-          echo "get base image"
-          if [ -n "${baseImageCudaVersion}" ] && [ -n "${baseImageOSVersion}" ] ; then
-              export BASEIMAGE_CUDA_VERISON=${baseImageCudaVersion}
-              export BASEIMAGE_OS_VERISON=${baseImageOSVersion}
-          fi
-          source ${{ env.DOCKERFILE_PATH }}
-          echo "baseImageFullName=${BASEIMAGE_FULL_NAME}" >> $GITHUB_ENV
 
       - name: Checkout Source Code
         uses: actions/checkout@v4
