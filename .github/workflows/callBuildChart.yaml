@@ -26,12 +26,13 @@ jobs:
       - name: Get information
         run: |
           echo '${{ toJSON(github) }}'
-          if ${{ inputs.ref != '' }}; then
+          # when CI trigger by PR and call this yaml, it appears ${{ github.event_name == 'pull_request' }}
+          #if ${{ inputs.ref != '' }}; then
             echo "code_sha=${{ inputs.code_sha }}" >> $GITHUB_ENV
             echo "chart_path=${{ inputs.chart_path }}" >> $GITHUB_ENV
-          else
-            eixt 1
-          fi
+          #else
+          #  eixt 1
+          #fi
 
       - name: Checkout Code
         uses: actions/checkout@v4
