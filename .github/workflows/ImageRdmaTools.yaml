@@ -96,7 +96,8 @@ jobs:
               export BASEIMAGE_CUDA_VERISON=${baseImageCudaVersion}
               export BASEIMAGE_OS_VERISON=${baseImageOSVersion}
           fi
-          source ${{ env.DOCKERFILE_PATH }}
+          chmod +x ${{ env.DOCKERFILE_PATH }}/version.sh
+          source ${{ env.DOCKERFILE_PATH }}/version.sh
           echo "baseImageFullName=${BASEIMAGE_FULL_NAME}" >> $GITHUB_ENV
           echo "get image tag"
           image_tag=${{ inputs.image_tag }}
