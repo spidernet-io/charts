@@ -3,9 +3,9 @@ entries:
   ofed-driver:
   - apiVersion: v2
     appVersion: 24.04.0
-    created: "2024-07-19T10:08:06.401278509Z"
+    created: "2024-07-25T07:37:08.747779967Z"
     description: ofed driver
-    digest: 421d816dfe2f359e8f1caa7ecf1704ebbfa330905ef692492e5e5b129f4ef7ab
+    digest: 31861b1f5181255241798b03e6cdf85a86487b3363579bbef0f198f71cc48a34
     home: https://spidernet-io.github.io/charts
     keywords:
     - ofed
@@ -22,7 +22,7 @@ entries:
   rdma-tools:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2024-07-19T10:08:06.401522778Z"
+    created: "2024-07-25T07:37:08.748030585Z"
     description: rdma test
     digest: 61a36949dfc829a2ac81d58dce061104d94cf970d30016f591fd50f8badc8b79
     home: https://spidernet-io.github.io/charts
@@ -37,4 +37,4 @@ entries:
     urls:
     - https://spidernet-io.github.io/charts/charts/rdma-tools-0.1.0.tgz
     version: 0.1.0
-generated: "2024-07-19T10:08:06.400789317Z"
+generated: "2024-07-25T07:37:08.747299097Z"
