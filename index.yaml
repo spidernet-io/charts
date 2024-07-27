@@ -3,7 +3,7 @@ entries:
   ofed-driver:
   - apiVersion: v2
     appVersion: 24.04.0
-    created: "2024-07-27T07:30:26.100003276Z"
+    created: "2024-07-27T08:04:30.437178208Z"
     description: ofed driver
     digest: ce4d59606cb7d2acadbb1257327f4314be074d49f438e2de55f08211ecfd2d8b
     home: https://spidernet-io.github.io/charts
@@ -21,8 +21,25 @@ entries:
     version: 24.04.0
   rdma-tools:
   - apiVersion: v2
+    appVersion: 12.5.0
+    created: "2024-07-27T08:04:30.437705408Z"
+    description: rdma test
+    digest: 5ac75c5536a2fa0cbd39d2c6a55097ce77f7617cfd3bbebe08c80e0cd2527d2f
+    home: https://spidernet-io.github.io/charts
+    keywords:
+    - rdma
+    - networking
+    kubeVersion: '>= 1.16.0-0'
+    name: rdma-tools
+    sources:
+    - https://spidernet-io.github.io/charts
+    type: application
+    urls:
+    - https://spidernet-io.github.io/charts/charts/rdma-tools-12.5.0.tgz
+    version: 12.5.0
+  - apiVersion: v2
     appVersion: 0.1.0
-    created: "2024-07-27T07:30:26.100255256Z"
+    created: "2024-07-27T08:04:30.437428428Z"
     description: rdma test
     digest: dfa84c45205c7b6d124403d0d74f2c3f7df79e94721a7a559229b0dc6e105d31
     home: https://spidernet-io.github.io/charts
@@ -37,4 +54,4 @@ entries:
     urls:
     - https://spidernet-io.github.io/charts/charts/rdma-tools-0.1.0.tgz
     version: 0.1.0
-generated: "2024-07-27T07:30:26.099517168Z"
+generated: "2024-07-27T08:04:30.436660095Z"
