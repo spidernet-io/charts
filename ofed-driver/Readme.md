@@ -5,9 +5,19 @@ and [values.yaml](https://github.com/Mellanox/network-operator/blob/master/deplo
 
 the pod builds the OFED driver from the source and install some online package. Once the pod is ready, the OFED driver is installed
 
-## image tag
-the image tag is with a format `{driverVersion}-${OSName}${OSVer}-${Arch}`
 
+## release chart
+
+```shell
+git tag ofe-driver-vXX.YY.ZZ 
+git push --tags
+```
+
+## deploy 
+
+### image tag
+
+the image tag of ofed-driver has a format `{driverVersion}-${OSName}${OSVer}-${Arch}`.
 refer to [nvidia available image tag](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/mellanox/containers/doca-driver/tags)
 
 for example:
@@ -15,7 +25,7 @@ for example:
 - 24.04-0.6.6.0-0-ubuntu22.04-amd64
 - 24.04-0.6.6.0-0-ubuntu24.04-amd64
 
-## deploy
+### install 
 
 ```shell
 helm repo add spiderchart https://spidernet-io.github.io/charts
@@ -65,9 +75,3 @@ mlx5_core            2068480  1 mlx5_ib
 
 refer [nvidia doc](https://docs.nvidia.com/networking/display/kubernetes2370/network+operator#src-132465565_NetworkOperator-NetworkOperatorDeploymentinAir-gappedEnvironment) and [enviroment config](https://github.com/Mellanox/network-operator/blob/master/docs/mofed-container-env-vars.md) for more details 
 
-## release 
-
-```shell
-git tag ofe-driver-vXX.YY.ZZ 
-git push --tags
-```

@@ -6,12 +6,14 @@ images including kinds of RDMA tools for debugging
 
 the image will automatically be generated after the PR is merged to branch main
 
-release the chart 
+release the chart
 
 ```shell
 git tag rdma-tools-vXX.YY.ZZ 
 git push --tags
 ```
+
+## install
 
 ```shell
 helm repo add spiderchart https://spidernet-io.github.io/charts
