@@ -9,12 +9,29 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+InstalNccl(){
+  CUDA_MAJOR=` echo ${CUDA_VERSION} | grep -o -E "[0-9]+\.[0-9]+" `
+
+  if [ "${CUDA_MAJOR}" == "12.5" ] ; then
+        # NCCL 2.22.3, for CUDA 12.5, ubuntu 22.04
+        apt-get install -y ca-certificates
+        wget --no-check-certificate https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
+        dpkg -i cuda-keyring_1.0-1_all.deb
+        apt-get update
+        apt install -y libnccl2 libnccl-dev
+        rm -f cuda-keyring_1.0-1_all.deb
+  else
+       echo "error, support CUDA version: ${CUDA_VERSION} , ${CUDA_MAJOR}"
+       exit 1
+  fi
+  echo "* soft memlock unlimited" >> /etc/security/limits.conf
+  echo "* hard memlock unlimited" >> /etc/security/limits.conf
+}
+
 packages=(
   iproute2
   # ibv_rc_pingpong
   ibverbs-utils
-  # ib_send_lat
-  perftest
   # ibstat
   infiniband-diags
   smc-tools
@@ -30,7 +47,6 @@ packages=(
   iputils-ping
 )
 
-
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 
@@ -39,6 +55,7 @@ apt-get update
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
 apt-get install -y --no-install-recommends "${packages[@]}"
+InstalNccl
 
 apt-get purge --auto-remove
 apt-get clean

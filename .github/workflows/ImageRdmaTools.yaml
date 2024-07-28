@@ -44,6 +44,8 @@ jobs:
       upload_artifact: ${{ env.upload_artifact }}
       dockerfile_dirctory: ${{ env.dockerfile_dirctory }}
       baseImageFullName: ${{ env.baseImageFullName }}
+      cudaDevImageName: ${{ env.cudaDevImageName }}
+      ldLibraryPath: ${{ env.ldLibraryPath }}
       image_tag: ${{ env.image_tag }}
     steps:
       - name: get information
@@ -100,6 +102,8 @@ jobs:
           chmod +x ${{ env.DOCKERFILE_PATH }}/version.sh
           source ${{ env.DOCKERFILE_PATH }}/version.sh
           echo "baseImageFullName=${BASEIMAGE_FULL_NAME}" >> $GITHUB_ENV
+          echo "cudaDevImageName=${CUDA_DEV_IMAGE_NAME}" >> $GITHUB_ENV
+          echo "ldLibraryPath=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
           echo "get image tag"
           image_tag=${{ inputs.image_tag }}
           if [ -n "${image_tag}" ]; then
@@ -121,5 +125,7 @@ jobs:
       build_platform: ${{ needs.get_info.outputs.build_platform }}
       upload_artifact: ${{ needs.get_info.outputs.upload_artifact }}
       baseImageFullName: ${{ needs.get_info.outputs.baseImageFullName }}
+      cudaDevImageName: ${{ needs.get_info.outputs.cudaDevImageName }}
+      ldLibraryPath: ${{ needs.get_info.outputs.ldLibraryPath }}
       image_tag: ${{ needs.get_info.outputs.image_tag }}
     secrets: inherit
