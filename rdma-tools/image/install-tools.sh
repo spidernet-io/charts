@@ -33,7 +33,7 @@ InstallSSH(){
   mkdir /root/.ssh
   ssh-keygen -t ed25519 -f ~/.ssh/id_spidernet -N ""
   cat ~/.ssh/id_spidernet.pub >> ~/.ssh/authorized_keys
-  service sshd start
+  service ssh start
 }
 
 
