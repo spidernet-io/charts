@@ -27,4 +27,7 @@ which ibping &>/dev/null
 which iperf3 &>/dev/null
 which ping &>/dev/null
 
+echo "----- ib_write_bw ---------"
+ib_write_bw || true
+
 exit 0

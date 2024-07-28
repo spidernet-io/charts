@@ -44,3 +44,6 @@ extraVolumes: []
 extraVolumeMounts: []
 # - name: test-val
 #   mountPath: /tmp
+
+service:
+  type: ClusterIP

@@ -33,6 +33,7 @@ spec:
       hostNetwork: false
       dnsPolicy: ClusterFirst
       {{- end }}
+      serviceAccountName: {{ .Values.name | trunc 63 | trimSuffix "-" }}
       restartPolicy: Always
       {{- with .Values.tolerations }}
       tolerations:
@@ -50,6 +51,7 @@ spec:
         - name: {{ .Values.name | trunc 63 | trimSuffix "-" }}
           image: {{ include "project.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: command: ["/usr/bin/sleep", "infinity"]
           {{- with .Values.resources }}
           resources:
           {{- toYaml . | trim | nindent 12 }}
@@ -73,6 +75,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: ENV_SERVICE_NAME
+              value: {{ .Values.name | trunc 63 | trimSuffix "-" }}
             - name: ENV_POD_NAMESPACE
               valueFrom:
                 fieldRef:

@@ -43,8 +43,11 @@ ARG GIT_COMMIT_TIME
 ENV GIT_COMMIT_TIME=${GIT_COMMIT_TIME}
 ARG VERSION
 ENV VERSION=${VERSION}
+
 ARG LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+ENV OMPI_ALLOW_RUN_AS_ROOT=1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
 COPY /install-tools.sh /install-tools.sh
 COPY /test.sh /test.sh
@@ -66,6 +69,5 @@ COPY --from=buildtools /build/bin/*   /usr/bin/
 
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
-
 
 CMD ["/usr/bin/sleep","infinity"]

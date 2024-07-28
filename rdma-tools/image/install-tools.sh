@@ -24,9 +24,18 @@ InstalNccl(){
        echo "error, support CUDA version: ${CUDA_VERSION} , ${CUDA_MAJOR}"
        exit 1
   fi
+
   echo "* soft memlock unlimited" >> /etc/security/limits.conf
   echo "* hard memlock unlimited" >> /etc/security/limits.conf
 }
+
+InstallSSH(){
+  mkdir /root/.ssh
+  ssh-keygen -t ed25519 -f ~/.ssh/id_spidernet -N ""
+  cat ~/.ssh/id_spidernet.pub >> ~/.ssh/authorized_keys
+  service sshd start
+}
+
 
 packages=(
   iproute2
@@ -45,6 +54,8 @@ packages=(
   iperf3
   # ping
   iputils-ping
+  # ssh server
+  openssh-server
 )
 
 export DEBIAN_FRONTEND=noninteractive
@@ -56,6 +67,7 @@ ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstalNccl
+InstallSSH
 
 apt-get purge --auto-remove
 apt-get clean
