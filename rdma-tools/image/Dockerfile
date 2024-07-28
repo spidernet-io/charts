@@ -17,7 +17,7 @@ ENV VERSION_PERFTEST=${VERSION_PERFTEST}
 
 #fix warning: debconf: delaying package configuration, since apt-utils is not installed
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y wget libibverbs-dev librdmacm-dev libibumad-dev libpci-dev
+RUN apt-get update && apt-get install -y wget libibverbs-dev librdmacm-dev libibumad-dev libpci-dev automake libtool make
 
 WORKDIR /
 RUN  wget --no-check-certificate https://github.com/linux-rdma/perftest/archive/refs/tags/${VERSION_PERFTEST}.tar.gz \
