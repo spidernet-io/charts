@@ -6,7 +6,7 @@ ARG CUDA_DEV_IMAGE_NAME
 
 #============= build tools============
 
-FROM ${CUDA_DEV_IMAGE_NAME} as buildtools
+FROM ${CUDA_DEV_IMAGE_NAME} as buildperftest
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
@@ -62,10 +62,10 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
 
 WORKDIR /
-RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
+RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 
-COPY --from=buildtools /build/bin/*   /usr/bin/
+COPY --from=buildperftest /build/bin/*   /usr/bin/
 
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh

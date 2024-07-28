@@ -9,3 +9,8 @@ spec:
   type: {{ .Values.service.type }}
   selector:
     app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+      protocol: TCP

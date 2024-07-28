@@ -9,7 +9,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-InstalNccl(){
+InstallNccl(){
   CUDA_MAJOR=` echo ${CUDA_VERSION} | grep -o -E "[0-9]+\.[0-9]+" `
 
   if [ "${CUDA_MAJOR}" == "12.5" ] ; then
@@ -66,7 +66,7 @@ apt-get update
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
 apt-get install -y --no-install-recommends "${packages[@]}"
-InstalNccl
+InstallNccl
 InstallSSH
 
 apt-get purge --auto-remove
