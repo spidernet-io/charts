@@ -63,7 +63,7 @@ spec:
           {{- if .Values.securityContext }}
           securityContext:
           {{- with .Values.securityContext }}
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- end }}
           env:

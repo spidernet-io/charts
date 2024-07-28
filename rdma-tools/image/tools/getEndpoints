@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# get endpoints ip of all rdma-tools pods
+echo "get endpoints from service ${ENV_SERVICE_NAME} in namespace ${ENV_POD_NAMESPACE}"
 
 APISERVER=https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
 SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount
@@ -8,5 +8,5 @@ NAMESPACE=$(cat ${SERVICEACCOUNT}/namespace)
 TOKEN=$(cat ${SERVICEACCOUNT}/token)
 CACERT=${SERVICEACCOUNT}/ca.crt
 
-curl  -k --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" \
-        -X GET ${APISERVER}/apis/apps/v1/namespaces/${ENV_POD_NAMESPACE}/serivce
+curl -k --cacert ${CACERT} --header "Authorization: Bearer ${TOKEN}" \
+        -X GET ${APISERVER}/apis/apps/v1/namespaces/${ENV_POD_NAMESPACE}/service
