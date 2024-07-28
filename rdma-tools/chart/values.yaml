@@ -4,6 +4,9 @@ image:
   registry: ghcr.io
   repository: spidernet-io/rdma-tools
   tag: "12.5.1-3c17d019bd011728bb7e70a1cce263fa17c88fc5"
+  #registry: ghcr.io
+  #repository: coreweave/nccl-tests
+  #tag: "12.4.1-cudnn-devel-ubuntu22.04-nccl2.21.5-1-85f9143"
 
   pullPolicy: IfNotPresent
   imagePullSecrets: []
