@@ -12,6 +12,9 @@ ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETARCH
 
+ARG VERSION_PERFTEST
+ENV VERSION_PERFTEST=${VERSION_PERFTEST}
+
 #fix warning: debconf: delaying package configuration, since apt-utils is not installed
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y libibverbs-dev librdmacm-dev libibumad-dev libpci-dev
