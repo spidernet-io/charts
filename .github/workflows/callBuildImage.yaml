@@ -83,6 +83,7 @@ jobs:
           echo "build_platform=${{ inputs.build_platform }}" >> $GITHUB_ENV
           echo "upload_artifact=${{ inputs.upload_artifact }}" >> $GITHUB_ENV
           echo "baseImageFullName=${{ inputs.baseImageFullName }}" >> $GITHUB_ENV
+          echo "cudaDevImageName=${{ inputs.cudaDevImageName }}" >> $GITHUB_ENV
           echo "versionPerftest=${{ inputs.versionPerftest }}" >> $GITHUB_ENV
           echo "ldLibraryPath=${{ inputs.ldLibraryPath }}" >> $GITHUB_ENV
           echo "upload_image_artifact_name=image-$( date +%Y%m%d%H%M%S%N )" >> $GITHUB_ENV
