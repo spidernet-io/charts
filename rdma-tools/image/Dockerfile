@@ -15,15 +15,16 @@ ARG VERSION_PERFTEST
 ENV VERSION_PERFTEST=${VERSION_PERFTEST}
 
 # Mellanox OFED (latest)
-RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -
-RUN cd /etc/apt/sources.list.d/ && wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget \
+    && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -  \
+    && cd /etc/apt/sources.list.d/ && wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
 
 # build perftest
 #fix warning: debconf: delaying package configuration, since apt-utils is not installed
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update \
-      && apt-get install -y --no-install-recommends libibverbs-dev librdmacm-dev libibumad-dev libpci-dev \
-      && apt-get install -y --no-install-recommends wget automake libtool make
+RUN  apt-get install -y --no-install-recommends libibverbs-dev librdmacm-dev libibumad-dev libpci-dev \
+      && apt-get install -y --no-install-recommends automake libtool make
 WORKDIR /
 RUN echo "build perftest ${VERSION_PERFTEST}" && wget --no-check-certificate https://github.com/linux-rdma/perftest/archive/refs/tags/${VERSION_PERFTEST}.tar.gz \
       &&  tar xzvf ${VERSION_PERFTEST}.tar.gz \
