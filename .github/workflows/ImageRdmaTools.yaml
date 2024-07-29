@@ -24,12 +24,6 @@ on:
         description: 'compile the image based on the sha or branch of code'
         required: true
         default: main
-      baseImageCudaVersion:
-        description: 'cuda verison for base image. refer to https://hub.docker.com/r/nvidia/cuda'
-        required: false
-      baseImageOSVersion:
-        description: 'os verison for base image. refer to https://hub.docker.com/r/nvidia/cuda'
-        required: false
 
 permissions: write-all
 
@@ -77,7 +71,7 @@ jobs:
         run: |
           set -x
           chmod +x ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
-          ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
+          source ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
           image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
           [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
           echo "image_tag=${ENV_BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
