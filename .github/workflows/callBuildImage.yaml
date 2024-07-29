@@ -43,6 +43,9 @@ on:
       versionPerftest:
         required: false
         type: string
+      versionNccltest:
+        required: false
+        type: string
     outputs:
       imageArtifactName:
         description: "image Artifact Name"
@@ -102,6 +105,7 @@ jobs:
           echo "baseImageFullName=${{ inputs.baseImageFullName }}" >> $GITHUB_ENV
           echo "cudaDevImageName=${{ inputs.cudaDevImageName }}" >> $GITHUB_ENV
           echo "versionPerftest=${{ inputs.versionPerftest }}" >> $GITHUB_ENV
+          echo "versionNccltest=${{ inputs.versionNccltest }}" >> $GITHUB_ENV
           echo "ldLibraryPath=${{ inputs.ldLibraryPath }}" >> $GITHUB_ENV
           echo "upload_image_artifact_name=image-$( date +%Y%m%d%H%M%S%N )" >> $GITHUB_ENV
           # spidernet-io/charts -> spidernet-io
@@ -162,6 +166,7 @@ jobs:
             CUDA_DEV_IMAGE_NAME=${{ env.cudaDevImageName }}
             LD_LIBRARY_PATH=${{ env.ldLibraryPath }}
             VERSION_PERFTEST=${{ env.versionPerftest }}
+            VERSION_NCCLTEST=${{ env.versionNccltest }}
 
       # Upload artifact race images tar
       - name: Upload image tar

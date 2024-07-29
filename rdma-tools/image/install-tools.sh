@@ -33,7 +33,21 @@ InstallSSH(){
   mkdir /root/.ssh
   ssh-keygen -t ed25519 -f ~/.ssh/id_spidernet -N ""
   cat ~/.ssh/id_spidernet.pub >> ~/.ssh/authorized_keys
+
+  sed -i 's/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g' /etc/ssh/ssh_config
+  echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config
+  sed -i 's/#\(StrictModes \).*/\1no/g' /etc/ssh/sshd_config
+
   service ssh start
+}
+
+InstallOfed(){
+  # required by perftest
+  # Mellanox OFED (latest)
+  wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -
+  cd /etc/apt/sources.list.d/
+  wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
+  apt-get install -y --no-install-recommends  libibverbs-dev libibumad3 libibumad-dev librdmacm-dev
 }
 
 
@@ -43,6 +57,8 @@ packages=(
   ibverbs-utils
   # ibstat
   infiniband-diags
+  # rping
+  rdmacm-utils
   smc-tools
   lshw
   #lspci
@@ -56,6 +72,8 @@ packages=(
   iputils-ping
   # ssh server
   openssh-server
+  curl
+  jq
 )
 
 export DEBIAN_FRONTEND=noninteractive
@@ -65,6 +83,7 @@ apt-get update
 # to avoid interactive prompt when it is being installed
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
+InstallOfed
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstallNccl
 InstallSSH

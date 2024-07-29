@@ -9,6 +9,9 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+source /opt/hpcx/hpcx-init.sh
+hpcx_load
+
 ip a &>/dev/null
 which show_gids &>/dev/null
 which ibdev2netdev &>/dev/null
@@ -26,8 +29,11 @@ which ibhosts &>/dev/null
 which ibping &>/dev/null
 which iperf3 &>/dev/null
 which ping &>/dev/null
+which all_reduce_perf &>/dev/null
+which mpirun &>/dev/null
 
-echo "----- ib_write_bw ---------"
-ib_write_bw || true
+echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
+echo "MPI_HOME=${MPI_HOME}"
+
 
 exit 0
