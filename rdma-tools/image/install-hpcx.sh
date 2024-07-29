@@ -28,4 +28,6 @@ mkdir /buildnccltest && cd /buildnccltest
 wget --no-check-certificate  https://github.com/NVIDIA/nccl-tests/archive/refs/tags/${ENV_VERSION_NCCLTEST}.tar.gz
 tar xvf ${ENV_VERSION_NCCLTEST}.tar.gz
 cd nccl-tests*
+source ${HPCX_DEST_DIR}/hpcx-init.sh
+hpcx_load
 make BUILDDIR=/buildnccltest MPI=1 CUDA_HOME=/usr/local/cuda
