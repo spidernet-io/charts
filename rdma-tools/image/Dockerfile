@@ -14,15 +14,14 @@ ARG TARGETARCH
 ARG VERSION_PERFTEST
 ENV VERSION_PERFTEST=${VERSION_PERFTEST}
 
-# Mellanox OFED (latest)
+# build perftest
+# Mellanox OFED (latest): required by perftest
+#fix warning: debconf: delaying package configuration, since apt-utils is not installed
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends wget \
     && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -  \
     && cd /etc/apt/sources.list.d/ && wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
-
-# build perftest
-#fix warning: debconf: delaying package configuration, since apt-utils is not installed
-ARG DEBIAN_FRONTEND=noninteractive
 RUN  apt-get install -y --no-install-recommends libibverbs-dev librdmacm-dev libibumad-dev libpci-dev \
       && apt-get install -y --no-install-recommends automake libtool make
 WORKDIR /
@@ -80,6 +79,12 @@ WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
 RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 
+# Mellanox OFED (latest): required by perftest
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget \
+    && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -  \
+    && cd /etc/apt/sources.list.d/ && wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
+
 COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
 COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
@@ -111,7 +116,6 @@ RUN source /opt/hpcx/hpcx-init.sh && \
       | install --mode=644 /dev/stdin /etc/ld.so.conf.d/hpcx.conf && \
     rm /tmp/printpaths.sh
 RUN ldconfig
-
 
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
