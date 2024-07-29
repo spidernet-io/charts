@@ -30,25 +30,6 @@ on:
       upload_artifact:
         required: true
         type: string
-      baseImageFullName:
-        required: true
-        type: string
-      # for rdma tools iamge
-      cudaDevImageName:
-        required: false
-        type: string
-      ldLibraryPath:
-        required: false
-        type: string
-      versionPerftest:
-        required: false
-        type: string
-      versionNccltest:
-        required: false
-        type: string
-      downloadUrlHpcx:
-        required: false
-        type: string
     outputs:
       imageArtifactName:
         description: "image Artifact Name"
@@ -105,12 +86,6 @@ jobs:
           echo "dockerfile_dirctory=${{ inputs.dockerfile_dirctory }}" >> $GITHUB_ENV
           echo "build_platform=${{ inputs.build_platform }}" >> $GITHUB_ENV
           echo "upload_artifact=${{ inputs.upload_artifact }}" >> $GITHUB_ENV
-          echo "baseImageFullName=${{ inputs.baseImageFullName }}" >> $GITHUB_ENV
-          echo "cudaDevImageName=${{ inputs.cudaDevImageName }}" >> $GITHUB_ENV
-          echo "versionPerftest=${{ inputs.versionPerftest }}" >> $GITHUB_ENV
-          echo "downloadUrlHpcx=${{ inputs.downloadUrlHpcx }}" >> $GITHUB_ENV
-          echo "versionNccltest=${{ inputs.versionNccltest }}" >> $GITHUB_ENV
-          echo "ldLibraryPath=${{ inputs.ldLibraryPath }}" >> $GITHUB_ENV
           echo "upload_image_artifact_name=image-$( date +%Y%m%d%H%M%S%N )" >> $GITHUB_ENV
           # spidernet-io/charts -> spidernet-io
           org_name=$( awk -F'/' '{print $1}'  <<< "${{ env.IMAGE_REPO }}" )
@@ -125,7 +100,6 @@ jobs:
           ref: ${{ env.code_sha }}
 
       - name: Getting Build Arg
-        id: arg
         run: |
           GIT_COMMIT_VERSION=$( git show -s --format='format:%H')
           GIT_COMMIT_TIME=$( git show -s --format='format:%aI')
@@ -166,12 +140,6 @@ jobs:
             GIT_COMMIT_VERSION=${{ env.commitver }}
             GIT_COMMIT_TIME=${{ env.committime }}
             VERSION=${{ env.code_sha }}
-            BASE_IMAGE=${{ env.baseImageFullName }}
-            CUDA_DEV_IMAGE_NAME=${{ env.cudaDevImageName }}
-            LD_LIBRARY_PATH=${{ env.ldLibraryPath }}
-            VERSION_PERFTEST=${{ env.versionPerftest }}
-            VERSION_NCCLTEST=${{ env.versionNccltest }}
-            DOWNLOAD_HPCX_URL=${{ env.downloadUrlHpcx }}
 
       # Upload artifact race images tar
       - name: Upload image tar

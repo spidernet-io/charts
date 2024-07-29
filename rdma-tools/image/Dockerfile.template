@@ -1,18 +1,16 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
-ARG CUDA_DEV_IMAGE_NAME
-
 #============= build tools============
 
-FROM ${CUDA_DEV_IMAGE_NAME} as buildtools
+FROM <<ENV_CUDA_DEV_IMAGE_NAME>> as buildtools
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETARCH
 
-ARG VERSION_PERFTEST
-ENV VERSION_PERFTEST=${VERSION_PERFTEST}
+ENV ENV_VERSION_PERFTEST=<<ENV_VERSION_PERFTEST>>
+ENV DOWNLOAD_OFED_DEB_SOUCRE=<<ENV_DOWNLOAD_OFED_DEB_SOURCE>>
 
 # build perftest
 # Mellanox OFED (latest): required by perftest
@@ -21,30 +19,27 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends wget \
     && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -  \
-    && cd /etc/apt/sources.list.d/ && wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
+    && cd /etc/apt/sources.list.d/ && wget ${DOWNLOAD_OFED_DEB_SOUCRE}
 RUN  apt-get install -y --no-install-recommends libibverbs-dev librdmacm-dev libibumad-dev libpci-dev \
       && apt-get install -y --no-install-recommends automake libtool make
 WORKDIR /
-RUN echo "build perftest ${VERSION_PERFTEST}" && wget --no-check-certificate https://github.com/linux-rdma/perftest/archive/refs/tags/${VERSION_PERFTEST}.tar.gz \
-      &&  tar xzvf ${VERSION_PERFTEST}.tar.gz \
-      &&  cd perftest-${VERSION_PERFTEST}  \
+RUN echo "build perftest ${ENV_VERSION_PERFTEST}" && wget --no-check-certificate https://github.com/linux-rdma/perftest/archive/refs/tags/${ENV_VERSION_PERFTEST}.tar.gz \
+      &&  tar xzvf ${ENV_VERSION_PERFTEST}.tar.gz \
+      &&  cd perftest-${ENV_VERSION_PERFTEST}  \
       && ./autogen.sh \
       && CUDA_H_PATH=`find /usr/local -name "cuda.h"` \
       && ./configure CUDA_H_PATH=${CUDA_H_PATH} -prefix=/buildperftest \
       && make && make install \
 
 # install hpcx and nccltest
-ARG DOWNLOAD_HPCX_URL
-ENV DOWNLOAD_HPCX_URL=${DOWNLOAD_HPCX_URL}
-ARG VERSION_NCCLTEST
-ENV VERSION_NCCLTEST=${VERSION_NCCLTEST}
+ENV ENV_DOWNLOAD_HPCX_URL=<<ENV_DOWNLOAD_HPCX_URL>>
+ENV ENV_VERSION_NCCLTEST=<<ENV_VERSION_NCCLTEST>>
 COPY /install-hpcx.sh /install-hpcx.sh
 RUN chmod +x /install-hpcx.sh \
     && /install-hpcx.sh
 
 #========== root image ==============
-ARG BASE_IMAGE
-FROM ${BASE_IMAGE} as rootfs
+FROM <<ENV_BASEIMAGE_FULL_NAME>> as rootfs
 
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETOS
@@ -58,8 +53,8 @@ ENV GIT_COMMIT_TIME=${GIT_COMMIT_TIME}
 ARG VERSION
 ENV VERSION=${VERSION}
 
-ARG LD_LIBRARY_PATH
-ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+ENV DOWNLOAD_OFED_DEB_SOUCRE=<<ENV_DOWNLOAD_OFED_DEB_SOURCE>>
+ENV LD_LIBRARY_PATH=<<ENV_LD_LIBRARY_PATH>>
 ENV OMPI_ALLOW_RUN_AS_ROOT=1
 ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
@@ -83,7 +78,7 @@ RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 RUN apt-get update \
     && apt-get install -y --no-install-recommends wget \
     && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -  \
-    && cd /etc/apt/sources.list.d/ && wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
+    && cd /etc/apt/sources.list.d/ && wget ${DOWNLOAD_OFED_DEB_SOUCRE}
 
 COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
 COPY --from=buildtools /buildnccltest/*       /usr/bin/

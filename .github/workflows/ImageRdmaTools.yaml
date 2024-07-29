@@ -39,17 +39,9 @@ jobs:
     outputs:
       code_sha: ${{ env.code_sha }}
       push_image: ${{ env.push_image }}
-      image_name: ${{ env.image_name }}
       build_platform: ${{ env.build_platform }}
       upload_artifact: ${{ env.upload_artifact }}
-      dockerfile_dirctory: ${{ env.dockerfile_dirctory }}
-      baseImageFullName: ${{ env.baseImageFullName }}
-      cudaDevImageName: ${{ env.cudaDevImageName }}
-      versionPerftest: ${{ env.versionPerftest }}
-      versionNccltest: ${{ env.versionNccltest }}
-      ldLibraryPath: ${{ env.ldLibraryPath }}
       image_tag: ${{ env.image_tag }}
-      downloadUrlHpcx: ${{ env.downloadUrlHpcx }}
     steps:
       - name: get information
         run: |
@@ -58,16 +50,12 @@ jobs:
             echo "call by workflow_dispatch"
             echo "code_sha=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
-            echo "image_name=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
-            echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
             echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
           elif ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
             echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
-            echo "image_name=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
-            echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
             echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
           else
@@ -75,8 +63,6 @@ jobs:
             echo "use sha ${{ github.event.pull_request.head.sha }} , by pr"
             echo "code_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
             echo "push_image=false" >> $GITHUB_ENV
-            echo "image_name=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
-            echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
             echo "build_platform=linux/amd64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
           fi
@@ -87,38 +73,14 @@ jobs:
           persist-credentials: false
           ref: ${{ env.code_sha }}
 
-      - name: Getting Build Arg
-        id: arg
+      - name: Generate Dockerfile
         run: |
           set -x
-          echo "get base image"
-          if [ -n "${{ github.event.inputs.baseImageCudaVersion }}" ] ; then
-              baseImageCudaVersion=${{ github.event.inputs.baseImageCudaVersion }}
-          fi
-          if [ -n "${{ github.event.inputs.baseImageOSVersion }}" ] ; then
-              baseImageOSVersion=${{ github.event.inputs.baseImageOSVersion }}
-          fi
-          if [ -n "${baseImageCudaVersion}" ] && [ -n "${baseImageOSVersion}" ] ; then
-              export BASEIMAGE_CUDA_VERISON=${baseImageCudaVersion}
-              export BASEIMAGE_OS_VERISON=${baseImageOSVersion}
-          fi
-          chmod +x ${{ env.DOCKERFILE_PATH }}/version.sh
-          source ${{ env.DOCKERFILE_PATH }}/version.sh
-          echo "baseImageFullName=${BASEIMAGE_FULL_NAME}" >> $GITHUB_ENV
-          echo "cudaDevImageName=${CUDA_DEV_IMAGE_NAME}" >> $GITHUB_ENV
-          echo "versionPerftest=${VERSION_PERFTEST}" >> $GITHUB_ENV
-          echo "versionNccltest=${VERSION_NCCLTEST}" >> $GITHUB_ENV
-          echo "downloadUrlHpcx=${DOWNLOAD_HPCX_URL}" >> $GITHUB_ENV
-          echo "ldLibraryPath=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
-          echo "get image tag"
-          image_tag=${{ inputs.image_tag }}
-          if [ -n "${image_tag}" ]; then
-             echo "image_tag=${BASEIMAGE_CUDA_VERISON}-${{ inputs.image_tag }}" >> $GITHUB_ENV
-          else
-             image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
-             [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
-             echo "image_tag=${BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
-          fi
+          chmod +x ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
+          ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
+          image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
+          [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
+          echo "image_tag=${ENV_BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
 
   call-workflow:
     needs: [get_info]
@@ -126,15 +88,9 @@ jobs:
     with:
       code_sha: ${{ needs.get_info.outputs.code_sha }}
       push_image: ${{ needs.get_info.outputs.push_image }}
-      image_name: ${{ needs.get_info.outputs.image_name }}
-      dockerfile_dirctory: ${{ needs.get_info.outputs.dockerfile_dirctory }}
+      image_name: ${{ env.IMAGE_NAME }}
+      dockerfile_dirctory: ${{ env.DOCKERFILE_PATH }}
       build_platform: ${{ needs.get_info.outputs.build_platform }}
       upload_artifact: ${{ needs.get_info.outputs.upload_artifact }}
-      baseImageFullName: ${{ needs.get_info.outputs.baseImageFullName }}
-      cudaDevImageName: ${{ needs.get_info.outputs.cudaDevImageName }}
-      ldLibraryPath: ${{ needs.get_info.outputs.ldLibraryPath }}
-      versionPerftest: ${{ needs.get_info.outputs.versionPerftest }}
-      versionNccltest: ${{ needs.get_info.outputs.versionNccltest }}
       image_tag: ${{ needs.get_info.outputs.image_tag }}
-      downloadUrlHpcx: ${{ needs.get_info.outputs.downloadUrlHpcx }}
     secrets: inherit
