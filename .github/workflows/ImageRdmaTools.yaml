@@ -50,13 +50,13 @@ jobs:
             echo "call by workflow_dispatch"
             echo "code_sha=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
-            echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
+            echo "build_platform=linux/amd64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
           elif ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
             echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
-            echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
+            echo "build_platform=linux/amd64" >> $GITHUB_ENV
             echo "upload_artifact=false" >> $GITHUB_ENV
           else
             echo "call by PR"
