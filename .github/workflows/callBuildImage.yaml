@@ -46,6 +46,9 @@ on:
       versionNccltest:
         required: false
         type: string
+      downloadUrlHpcx:
+        required: false
+        type: string
     outputs:
       imageArtifactName:
         description: "image Artifact Name"
@@ -105,6 +108,7 @@ jobs:
           echo "baseImageFullName=${{ inputs.baseImageFullName }}" >> $GITHUB_ENV
           echo "cudaDevImageName=${{ inputs.cudaDevImageName }}" >> $GITHUB_ENV
           echo "versionPerftest=${{ inputs.versionPerftest }}" >> $GITHUB_ENV
+          echo "downloadUrlHpcx=${{ inputs.downloadUrlHpcx }}" >> $GITHUB_ENV
           echo "versionNccltest=${{ inputs.versionNccltest }}" >> $GITHUB_ENV
           echo "ldLibraryPath=${{ inputs.ldLibraryPath }}" >> $GITHUB_ENV
           echo "upload_image_artifact_name=image-$( date +%Y%m%d%H%M%S%N )" >> $GITHUB_ENV
@@ -167,6 +171,7 @@ jobs:
             LD_LIBRARY_PATH=${{ env.ldLibraryPath }}
             VERSION_PERFTEST=${{ env.versionPerftest }}
             VERSION_NCCLTEST=${{ env.versionNccltest }}
+            DOWNLOAD_HPCX_URL=${{ env.downloadUrlHpcx }}
 
       # Upload artifact race images tar
       - name: Upload image tar

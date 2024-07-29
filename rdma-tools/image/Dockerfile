@@ -1,7 +1,6 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
-ARG BASE_IMAGE
 ARG CUDA_DEV_IMAGE_NAME
 
 #============= build tools============
@@ -44,6 +43,7 @@ RUN chmod +x /install-hpcx.sh \
     && /install-hpcx.sh
 
 #========== root image ==============
+ARG BASE_IMAGE
 FROM ${BASE_IMAGE} as rootfs
 
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.

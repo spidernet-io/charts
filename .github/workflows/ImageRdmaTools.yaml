@@ -49,6 +49,7 @@ jobs:
       versionNccltest: ${{ env.versionNccltest }}
       ldLibraryPath: ${{ env.ldLibraryPath }}
       image_tag: ${{ env.image_tag }}
+      downloadUrlHpcx: ${{ env.downloadUrlHpcx }}
     steps:
       - name: get information
         run: |
@@ -107,6 +108,7 @@ jobs:
           echo "cudaDevImageName=${CUDA_DEV_IMAGE_NAME}" >> $GITHUB_ENV
           echo "versionPerftest=${VERSION_PERFTEST}" >> $GITHUB_ENV
           echo "versionNccltest=${VERSION_NCCLTEST}" >> $GITHUB_ENV
+          echo "downloadUrlHpcx=${DOWNLOAD_HPCX_URL}" >> $GITHUB_ENV
           echo "ldLibraryPath=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
           echo "get image tag"
           image_tag=${{ inputs.image_tag }}
@@ -134,4 +136,5 @@ jobs:
       versionPerftest: ${{ needs.get_info.outputs.versionPerftest }}
       versionNccltest: ${{ needs.get_info.outputs.versionNccltest }}
       image_tag: ${{ needs.get_info.outputs.image_tag }}
+      downloadUrlHpcx: ${{ needs.get_info.outputs.downloadUrlHpcx }}
     secrets: inherit
