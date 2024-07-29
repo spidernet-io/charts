@@ -1,8 +1,5 @@
 #!/bin/bash
 
-CURRENT_FILENAME=$( basename $0 )
-CURRENT_DIR_PATH=$(cd $(dirname $0); pwd)
-
 # for base image tag
 
 export ENV_BASEIMAGE_CUDA_VERISON=${ENV_BASEIMAGE_CUDA_VERISON:-"12.5.1"}
@@ -29,7 +26,7 @@ export ENV_CUDA_DEV_IMAGE_NAME=nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-d
 echo "------------------------ Generate Dockerfile ---------------------------"
 
 GenerateDockerfile(){
-    cd ${CURRENT_DIR_PATH}
+    pwd
     rm -f  Dockerfile || true
     cp Dockerfile.template Dockerfile
 

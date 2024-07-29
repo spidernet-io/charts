@@ -70,8 +70,9 @@ jobs:
       - name: Generate Dockerfile
         run: |
           set -x
-          chmod +x ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
-          source ${{ env.DOCKERFILE_PATH }}/generateDockerfile.sh
+          cd ${{ env.DOCKERFILE_PATH }}
+          chmod +x ./generateDockerfile.sh
+          source ./generateDockerfile.sh
           image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
           [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
           echo "image_tag=${ENV_BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
