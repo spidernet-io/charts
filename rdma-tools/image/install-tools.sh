@@ -10,20 +10,15 @@ set -o pipefail
 set -o nounset
 
 InstallNccl(){
-  CUDA_MAJOR=` echo ${CUDA_VERSION} | grep -o -E "[0-9]+\.[0-9]+" `
 
-  if [ "${CUDA_MAJOR}" == "12.5" ] ; then
-        # NCCL 2.22.3, for CUDA 12.5, ubuntu 22.04
-        apt-get install -y ca-certificates
-        wget --no-check-certificate https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
-        dpkg -i cuda-keyring_1.0-1_all.deb
-        apt-get update
-        apt install -y libnccl2 libnccl-dev
-        rm -f cuda-keyring_1.0-1_all.deb
-  else
-       echo "error, support CUDA version: ${CUDA_VERSION} , ${CUDA_MAJOR}"
-       exit 1
-  fi
+  cd /tmp
+  rm * -rf || true
+  apt-get install -y ca-certificates
+  wget --no-check-certificate ${ENV_CUDA_DEB_SOURCE}
+  dpkg -i *.deb
+  apt-get update
+  apt install -y libnccl2 libnccl-dev
+  rm * -rf || true
 
   echo "* soft memlock unlimited" >> /etc/security/limits.conf
   echo "* hard memlock unlimited" >> /etc/security/limits.conf
@@ -46,7 +41,7 @@ InstallOfed(){
   # Mellanox OFED (latest)
   wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -
   cd /etc/apt/sources.list.d/
-  wget https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list
+  wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get install -y --no-install-recommends  libibverbs-dev libibumad3 libibumad-dev librdmacm-dev
 }
 
@@ -64,7 +59,6 @@ packages=(
   #lspci
   pciutils
   vim
-  wget
   # ibdiagnet ibnetdiscover
   ibutils
   iperf3
@@ -78,6 +72,7 @@ packages=(
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
+apt-get install -y --no-install-recommends wget
 
 # tzdata is one of the dependencies and a timezone must be set
 # to avoid interactive prompt when it is being installed

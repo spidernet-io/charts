@@ -16,8 +16,6 @@ ip a &>/dev/null
 which show_gids &>/dev/null
 which ibdev2netdev &>/dev/null
 which ibv_rc_pingpong &>/dev/null
-which ib_send_lat &>/dev/null
-which ib_send_bw &>/dev/null
 which ibstat &>/dev/null
 which smc_run &>/dev/null
 which lspci &>/dev/null
@@ -29,11 +27,12 @@ which ibhosts &>/dev/null
 which ibping &>/dev/null
 which iperf3 &>/dev/null
 which ping &>/dev/null
-which all_reduce_perf &>/dev/null
-which mpirun &>/dev/null
+
+ib_send_bw -h
+all_reduce_perf -h
+mpirun --allow-run-as-root -h
 
 echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
 echo "MPI_HOME=${MPI_HOME}"
-
 
 exit 0
