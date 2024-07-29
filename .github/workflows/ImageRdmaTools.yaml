@@ -3,6 +3,7 @@ name: Image Rdma Tools
 env:
   IMAGE_NAME: rdma-tools
   DOCKERFILE_PATH: rdma-tools/image
+  GEN_DOCKERFILE_SCRIPT: rdma-tools/image/generateDockerfile.sh
 
 on:
   push:
@@ -38,6 +39,7 @@ jobs:
       image_tag: ${{ env.image_tag }}
       image_name: ${{ env.image_name }}
       dockerfile_dirctory: ${{ env.dockerfile_dirctory }}
+      generateDockerfileScript: ${{ env.generateDockerfileScript }}
     steps:
       - name: get information
         run: |
@@ -46,6 +48,7 @@ jobs:
           echo "build_platform=linux/amd64" >> $GITHUB_ENV
           echo "upload_artifact=false" >> $GITHUB_ENV
           echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
+          echo "generateDockerfileScript=${{ env.GEN_DOCKERFILE_SCRIPT }}" >> $GITHUB_ENV
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             echo "call by workflow_dispatch"
             echo "code_sha=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
@@ -88,4 +91,5 @@ jobs:
       build_platform: ${{ needs.get_info.outputs.build_platform }}
       upload_artifact: ${{ needs.get_info.outputs.upload_artifact }}
       image_tag: ${{ needs.get_info.outputs.image_tag }}
+      generateDockerfileScript: ${{ needs.get_info.outputs.generateDockerfileScript }}
     secrets: inherit

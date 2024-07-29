@@ -30,6 +30,9 @@ on:
       upload_artifact:
         required: true
         type: string
+      generateDockerfileScript:
+        required: false
+        type: string
     outputs:
       imageArtifactName:
         description: "image Artifact Name"
@@ -113,6 +116,15 @@ jobs:
              image_tag=$( git ls-tree --full-tree HEAD -- ${dockerfile_dirctory} | awk '{ print $3 }' )
              [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
              echo "image_tag=${image_tag}" >> $GITHUB_ENV
+          fi
+          GENERATE_SCRIPT_PATH=${{ inputs.generateDockerfileScript }}
+          if [ -n "${GENERATE_SCRIPT_PATH}" ]; then
+              [ -f "${GENERATE_SCRIPT_PATH}" ] || { echo "error, failed to find generateDockerfileScript: ${GENERATE_SCRIPT_PATH}"; exit 1 ; }
+              DIR_PATH=$( dirname ${GENERATE_SCRIPT_PATH} )
+              SCRIPT_NAME=$( basename ${GENERATE_SCRIPT_PATH} )
+              cd ${DIR_PATH}
+              chmod +x ${SCRIPT_NAME}
+              ./${SCRIPT_NAME}              
           fi
 
       - name: Login to online register
