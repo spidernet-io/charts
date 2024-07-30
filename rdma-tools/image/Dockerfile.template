@@ -100,5 +100,7 @@ ENV CPATH=/opt/hpcx/ompi/include:/opt/hpcx/ucc/include:/opt/hpcx/ucx/include:/op
 ENV PKG_CONFIG_PATH=/opt/hpcx/hcoll/lib/pkgconfig:/opt/hpcx/sharp/lib/pkgconfig:/opt/hpcx/ucx/lib/pkgconfig:/opt/hpcx/ompi/lib/pkgconfig:
 # End of auto-generated paths
 
-RUN ulimit -l 1048576
+
+RUN ulimit -l 2000000
+
 CMD ["/entry.sh"]

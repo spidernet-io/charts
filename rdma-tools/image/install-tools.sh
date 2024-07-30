@@ -20,7 +20,6 @@ InstallNccl(){
   apt install -y libnccl2 libnccl-dev
   rm * -rf || true
 
-  ulimit -l 1048576
   echo "* soft memlock unlimited" >> /etc/security/limits.conf
   echo "* hard memlock unlimited" >> /etc/security/limits.conf
 }
