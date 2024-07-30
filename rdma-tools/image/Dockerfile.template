@@ -102,5 +102,6 @@ ENV PKG_CONFIG_PATH=/opt/hpcx/hcoll/lib/pkgconfig:/opt/hpcx/sharp/lib/pkgconfig:
 
 
 RUN ulimit -l 2000000
+RUN service ssh start
 
 CMD ["/entry.sh"]

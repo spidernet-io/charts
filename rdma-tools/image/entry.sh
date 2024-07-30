@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "----------- start ssh---------"
-service ssh start
+#echo "----------- start ssh---------"
+#service ssh start
 
 echo "=---------- ulimit ----------------"
 ulimit -a
