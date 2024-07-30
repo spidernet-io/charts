@@ -93,6 +93,7 @@ packages=(
   openssh-server
   curl
   jq
+  inxi
 )
 
 export DEBIAN_FRONTEND=noninteractive
