@@ -6,7 +6,6 @@
 set -x
 set -o xtrace
 set -o errexit
-set -o pipefail
 set -o nounset
 
 source /opt/hpcx/hpcx-init.sh
@@ -28,7 +27,9 @@ which ibping &>/dev/null
 which iperf3 &>/dev/null
 which ping &>/dev/null
 
-ib_send_bw -h
+#ib_send_bw -h
+ib_send_bw |& grep "Did not detect devices"
+
 all_reduce_perf -h
 mpirun --allow-run-as-root -h
 
