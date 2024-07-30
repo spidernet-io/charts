@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+
+# todo: just support RoceV2, need to support inifiband
+GetLocalRoceDeviceIP(){
+# output:
+# device  interface IP  Mask protocol
+# mlx5_16 net1 172.81.1.143 16 RoceV2
+    {
+        # mlx5_16 172.81.1.143
+        # mlx5_16 172.81.1.143
+        RAW_INFO=$( show_gids | grep -E "[0-9]+(\.[0-9]+){3}[[:space:]]+v2" | sed -E 's?^([^[:space:]]+)[[:space:]]+.*[[:space:]]+([^[:space:]]+)[[:space:]]+v2.*?\1 \2?g' )
+        DEV_INFO=$( ibdev2netdev )
+
+        RESULT=""
+        OLD=$IFS
+        IFS=$'\n'
+        for ITEM in ${RAW_INFO} ;do
+            RDMA_DEVICE=$( echo "$ITEM" | awk  '{print $1}' )
+            RDMA_ADDR=$( echo "$ITEM" | awk  '{print $2}' )
+
+            INTERFACE_NAME=$( echo "${DEV_INFO}" | grep -E "^${RDMA_DEVICE} " | head -1 | awk '{print $5}' )
+            [ -n "${INTERFACE_NAME}" ] || { echo "failed to find interface for rdma device ${RDMA_DEVICE} " ; continue ;  }
+            IP_MASK_LENGTH=$( ip a s ${INTERFACE_NAME} | grep -oP "(?<=inet\s)${RDMA_ADDR}/[0-9]+" | awk -F'/' '{print $2}' )
+            RESULT="${RESULT}
+${RDMA_DEVICE} ${INTERFACE_NAME} ${RDMA_ADDR} ${IP_MASK_LENGTH}  RoceV2 "
+        done
+        IFS=$OLD
+    } 1>&2
+    [ -n "${RESULT}" ] && echo ${RESULT}
+}
+
+CheckIPv4SameSubnet(){
+  {
+    ipa=${1:-""}
+    ipb=${2:-""}
+    length=${3:-""}
+
+    if ! grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$" <<< "$ipa"  &>/dev/null   ; then
+        echo "error, $ipa is not a ip address with format xx.yy.aa.bb"
+        exit -1
+    fi
+    if ! grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$" <<< "$ipb"  &>/dev/null   ; then
+        echo "error, $ipb is not a ip address with format xx.yy.aa.bb"
+        exit -1
+    fi
+    if ! (( length>=1 && length <=32 )) ; then
+        echo "error, wrong length "
+        exit -1
+    fi
+    if ((length==32)) ; then
+        [ "$ipa" != "$ipb" ] && return 1
+        return 0
+    fi
+
+    ipa_val=0
+    for loop in ${ipa//./ } ; do
+        ((ipa_val= (ipa_val<<8) + loop))
+    done
+    ipb_val=0
+    for loop in ${ipb//./ } ; do
+        ((ipb_val= (ipb_val<<8) +loop))
+    done
+
+    (( MASK = 0xffffffff - ( (0x1<< (32-length) ) - 1 ) ))
+    if (( (ipa_val & MASK) == ( ipb_val & MASK) )) ; then
+        #echo "two IP are in a same subnet"
+        return 0
+    else
+        #echo "two IP are not in a same subnet"
+        return 1
+    fi
+  } 1>&2
+}
+
+
+GetGPUAmount(){
+    GPU_TOTAL=""
+    {
+        if nvidia-smi -L &>/dev/null ; then
+            GPU_TOTAL=$( nvidia-smi -L  | wc -l )
+            if ((  GPU_TOTAL == 0 )) ; then
+                  echo "error, there is no GPU detected "
+                  return 1
+            fi
+        else
+            echo "error, there is no GPU detected"
+            return 1
+        fi
+    } 1>&2
+    echo "${GPU_TOTAL}"
+}
+
+
+GetRdmaDevList(){
+    {
+        DEV_LIST=$( ibdev2netdev | awk '{print $1}' | tr '\n' ' ' )
+        [ -n "${DEV_LIST}" ] || { echo "error, no rdma device is detected " ; exit 1 ; }
+    } 1>&2
+    echo "${DEV_LIST}"
+}
+
+CheckGpuIdValidity(){
+    {
+        GPU_NUM=${1:-""}
+        grep -E "^[0-9]+$" <<< "${GPU_NUM}" &>/dev/null || { echo "error, ${GPU_NUM} is not a GPU id" ; exit 1 ;  }
+        if nvidia-smi -L &>/dev/null ; then
+            GPU_TOTAL=$( nvidia-smi -L  | wc -l )
+            if ((  GPU_NUM>(GPU_TOTAL-1) )) ; then
+                  echo "error, there is only ${GPU_TOTAL} gpu device, but the designated gpu number is ${GPU_NUM} "
+                  return 1
+            fi
+        else
+            echo "error, there is no GPU detected"
+            return 1
+        fi
+        return 0
+    } 1>&2
+}
+
+# todo: just support RoceV2, need to support inifiband
+CheckRdmaDevValidity(){
+    {
+        DEV_NAME=${1:-""}
+        if ibstat ${DEV_NAME} &>/dev/null ; then
+            return 0
+        else
+            echo "error, there is not rdma device ${DEV_NAME}"
+            return 1
+        fi
+    } 1>&2
+}
+
+GetBestRdmaDeviceIP(){
+    BEST_IP=""
+    {
+        DEV_NAME=${1:-""}
+        if CheckRdmaDevValidity ${DEV_NAME} &>/dev/null ; then
+            # get the last matched one, which is RoceV2
+            BEST_IP=$(  show_gids  | grep -E "^${DEV_NAME}[[:space:]]" | grep -o -E "[[:space:]][0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}[[:space:]]" | tail -1 | grep -o -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" )
+        fi
+    } 1>&2
+    echo "${BEST_IP}"
+}
+

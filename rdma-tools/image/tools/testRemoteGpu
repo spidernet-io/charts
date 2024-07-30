@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+# test GDR: local node against a remote node , with rdma device in the same subnet
+# todo: support infiniband
+
+#set -x
+#set -o pipefail
+set -o errexit
+set -o nounset
+
+REMOTE_IP=${1:-""}
+
+source /usr/sbin/rdmatools
+[ -n "${REMOTE_IP}" ] || REMOTE_IP=$( getOneRemoteEndpoint )
+
+
+ulimit -l 2000000
+TestPerftestGpu(){
+
+    echo ""
+    echo "***************************************************************************************************************"
+    echo "******************** case: test rdma between local node and a remote node ${REMOTE_IP} ************************"
+    echo "***************************************************************************************************************"
+    echo ""
+
+    GPU_TOTAL=$( GetGPUAmount ) || { echo "error, there is no GPU locally" ; exit 1 ; }
+    RDMA_DEV_LIST=$( GetRdmaDevList ) || { echo "error, there is RDMA device locally" ; exit 1 ; }
+
+    echo "---------local 127.0.0.1 topo:"
+    nvidia-smi topo -m
+    GetLocalRoceDeviceIP
+    echo ""
+    echo "GPU range: 0 ... $((GPU_TOTAL-1))"
+    echo -n "Please input the expected GPU number of local node: "
+    read LOCAL_GPU_NUM
+    echo ""
+    CheckGpuIdValidity "${LOCAL_GPU_NUM}" || exit 1
+    echo ""
+    show_gids
+    echo ""
+    echo "Rdma device: ${RDMA_DEV_LIST}"
+    echo -n "Please input the expected RDMA device of local node: "
+    read LOCAL_RDMA_DEV
+    echo ""
+    CheckRdmaDevValidity "${LOCAL_RDMA_DEV}" || exit 1
+    LOCAL_RDMA_IP=$( GetBestRdmaDeviceIP "${LOCAL_RDMA_DEV}" )
+    [ -n "${LOCAL_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${LOCAL_RDMA_DEV}" ; exit 1 ;  }
+
+
+    GPU_TOTAL=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetGPUAmount " ) || { echo "error, there is no GPU on remote ${REMOTE_IP}" ; exit 1 ; }
+    RDMA_DEV_LIST=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetRdmaDevList " ) || { echo "error, there is RDMA device on remote ${REMOTE_IP}" ; exit 1 ; }
+    echo ""
+    echo "---------remote ${REMOTE_IP} topo:"
+    ssh ${REMOTE_IP} " nvidia-smi topo -m "
+    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRoceDeviceIP "
+    echo ""
+    echo "GPU range: 0 ... $((GPU_TOTAL-1))"
+    echo -n "Please input the expected GPU number of remote node ${REMOTE_IP}: "
+    read REMOTE_GPU_NUM
+    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckGpuIdValidity ${REMOTE_GPU_NUM}  " || exit 1
+    echo ""
+    echo ""
+    ssh ${REMOTE_IP} " show_gids "
+    echo ""
+    echo "Rdma device: ${RDMA_DEV_LIST}"
+    echo -n "Please input the expected RDMA device of remote node ${REMOTE_IP}: "
+    read REMOTE_RDMA_DEV
+    echo ""
+    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckRdmaDevValidity ${REMOTE_RDMA_DEV}  " || exit 1
+    REMOTE_RDMA_IP=$(  ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetBestRdmaDeviceIP ${REMOTE_RDMA_DEV}  " )
+    [ -n "${REMOTE_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${REMOTE_RDMA_IP}" ; exit 1 ;  }
+
+    echo ""
+    echo "---------------------------------------------------------------------------------------------------------"
+    echo "   test expectation: "
+    echo "            local node 127.0.0.1 : GPU ${LOCAL_GPU_NUM}, device ${LOCAL_RDMA_DEV}"
+    echo "            remote node ${REMOTE_IP} : GPU ${REMOTE_GPU_NUM}, device ${REMOTE_RDMA_DEV}"
+    echo "----------------------------------------------------------------------------------------------------------"
+
+    (
+        PID=`ps aux | grep ib_write_bw | grep -v grep | awk '{print $2}' ` && [ -n "${PID}" ] && kill -9 ${PID}
+        echo "server on local: ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} -a -F --report_gbits -q 1  "
+        ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} -a -F --report_gbits -q 1
+    )&
+    sleep 3
+
+    echo "clinet on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1  ${LOCAL_RDMA_IP} "
+    ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1 ${LOCAL_RDMA_IP} "
+
+}
+TestPerftestGpu

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+#set -x
+#set -o pipefail
+set -o errexit
+set -o nounset
+
+{
+    ALL_IP=`getAllEndpoints`
+    [ -n "${ALL_IP}" ]  || { echo "error, getAllEndpoints" ; exit 1 ; }
+    ALL_LOCAL_IP=` ip -4 addr | grep -oP '(?<=inet\s)[0-9]+(\.[0-9]+){3}'	 | tr '\n' ' ' `
+
+    ONE_REMOTE_IP=""
+    for ITEM in ${ALL_IP} ; do
+        if grep " ${ITEM} " <<< " ${ALL_LOCAL_IP} " &>/dev/null ; then
+            continue
+        else
+            ONE_REMOTE_IP="${ITEM}"
+            break
+        fi
+    done
+    [ -n "${ONE_REMOTE_IP}" ] || { echo "error, failed to get ONE_REMOTE_IP"; exit 2 ; }
+} 1>&2
+
+echo -n "${ONE_REMOTE_IP}"

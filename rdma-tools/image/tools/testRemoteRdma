@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+# test local node against a remote node , with rdma device in the same subnet
+# todo: support infiniband
+
+#set -x
+#set -o pipefail
+set -o errexit
+set -o nounset
+
+source /usr/sbin/rdmatools
+
+if nvidia-smi -L &>/dev/null ; then
+    GPU_NUM=$( nvidia-smi -L  | wc -l )
+else
+    echo "there is no GPU detected"
+    GPU_NUM=0
+fi
+
+REMOTE_IP=$( getOneRemoteEndpoint )
+LOCAL_RDMA_INFO=$( GetLocalRoceDeviceIP )
+REMOTE_RDMA_INFO=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRoceDeviceIP " )
+ulimit -l 2000000
+
+
+
+TestPerftestRdma(){
+
+    echo ""
+    echo "***************************************************************************************************************"
+    echo "******************** case: test rdma between local node and a remote node ${REMOTE_IP} ************************"
+    echo "***************************************************************************************************************"
+    echo ""
+
+    # device  interface IP  Mask protocol
+    # mlx5_16 net1 172.81.1.143 16 RoceV2
+    echo ""
+    echo "local node 127.0.0.1 information:"
+    echo "${LOCAL_RDMA_INFO}"
+    echo ""
+    echo "remote node ${REMOTE_IP} information:"
+    echo "${REMOTE_RDMA_INFO}"
+
+    OLD=$IFS
+    IFS=$'\n'
+    for ITEM in ${LOCAL_RDMA_INFO} ;do
+        IFS=$OLD
+
+        LOCAL_DEVICE=$( echo "${ITEM}" | awk '{print $1}' )
+        LOCAL_INTERFACE=$( echo "${ITEM}" | awk '{print $2}' )
+        LOCAL_IP=$( echo "${ITEM}" | awk '{print $3}' )
+        LOCAL_MASK=$( echo "${ITEM}" | awk '{print $4}' )
+
+        IFS=$'\n'
+        for LINE in ${REMOTE_RDMA_INFO} ;do
+            IFS=$OLD
+            REMOTE_DEVICE=$( echo "${LINE}" | awk '{print $1}' )
+            REMOTE_INTERFACE=$( echo "${LINE}" | awk '{print $2}' )
+            REMOTE_IP=$( echo "${LINE}" | awk '{print $3}' )
+            REMOTE_MASK=$( echo "${LINE}" | awk '{print $4}' )
+            {
+                if [ "${REMOTE_MASK}"x == "${LOCAL_MASK}"x ] && [ -n "${LOCAL_MASK}" ]; then
+                    if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}" ; then
+                        echo ""
+                        echo "---------- case: 127.0.0.1 (${LOCAL_DEVICE} ${LOCAL_IP}) vs remote ${REMOTE_IP} (${REMOTE_DEVICE} ${REMOTE_IP})---------------"
+                        (
+                            echo "on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1"
+                            ssh ${REMOTE_IP}  " PID=\`ps aux | grep ib_write_bw | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  "
+                            ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1 "
+                        )&
+                        sleep 3
+                        echo "on local: ib_write_bw -d ${LOCAL_DEVICE}  -a -F --report_gbits -q 1 ${REMOTE_IP} "
+                        ib_write_bw -d ${LOCAL_DEVICE}  -a -F --report_gbits -q 1 ${REMOTE_IP}
+                    fi
+                fi
+            }
+        done
+    done
+
+}
+
+TestPerftestRdma

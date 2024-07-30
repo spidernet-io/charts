@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+source /usr/sbin/rdmatools
+
 echo ""
 echo "----------- start ssh---------"
 service ssh start
@@ -30,6 +35,10 @@ echo "----------- ip a ------------------"
 ip a
 
 echo ""
+echo "=---------- rdma device information ----------------"
+GetLocalRoceDeviceIP
+
+echo ""
 echo "----------- ibstat ------------------"
 ibstat
 
@@ -53,5 +62,6 @@ echo ""
 echo "----------- inxi  ------------------"
 inxi -v8
 
+echo ""
 echo "----------- wait looply.... ---------- "
 /usr/bin/sleep infinity
