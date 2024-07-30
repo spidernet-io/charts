@@ -41,7 +41,7 @@ mkdir /tmp/build
 cd /tmp/build
 wget --no-check-certificate https://github.com/NVIDIA/cuda-samples/archive/refs/tags/${ENV_VERSION_CUDA_SAMPLE}.tar.gz
 tar xzvf ${ENV_VERSION_CUDA_SAMPLE}.tar.gz
-cd cuda-samples-${ENV_VERSION_CUDA_SAMPLE}/Samples/1_Utilities/bandwidthTest
+cd cuda-samples*/Samples/1_Utilities/bandwidthTest
 make -j20
 ls
 rm -rf /buildCudaSample || true
