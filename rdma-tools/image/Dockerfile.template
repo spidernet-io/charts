@@ -101,7 +101,6 @@ ENV PKG_CONFIG_PATH=/opt/hpcx/hcoll/lib/pkgconfig:/opt/hpcx/sharp/lib/pkgconfig:
 # End of auto-generated paths
 
 
-RUN ulimit -l 2000000
-RUN service ssh start
+RUN sudo ulimit -l 2000000 && sudo service ssh start
 
 CMD ["/entry.sh"]
