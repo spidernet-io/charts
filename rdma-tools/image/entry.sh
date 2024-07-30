@@ -1,9 +1,11 @@
 #!/bin/bash
 
-#echo "----------- start ssh---------"
-#service ssh start
+echo "----------- start ssh---------"
+service ssh start
+
 
 echo "=---------- ulimit ----------------"
+ulimit -l 2000000
 ulimit -a
 
 echo "----------- env: LD_LIBRARY_PATH ------------------"

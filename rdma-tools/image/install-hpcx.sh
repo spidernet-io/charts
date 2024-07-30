@@ -31,3 +31,21 @@ cd nccl-tests*
 source ${HPCX_DEST_DIR}/hpcx-init.sh
 hpcx_load
 make BUILDDIR=/buildnccltest MPI=1 CUDA_HOME=/usr/local/cuda
+
+
+echo "--------------- install Bandwidthtest -------------------"
+echo "build cuda sample: ${ENV_VERSION_CUDA_SAMPLE}"
+
+rm -rf /tmp/build || true
+mkdir /tmp/build
+cd /tmp/build
+wget --no-check-certificate https://github.com/NVIDIA/cuda-samples/archive/refs/tags/${ENV_VERSION_CUDA_SAMPLE}.tar.gz
+tar xzvf ${ENV_VERSION_CUDA_SAMPLE}.tar.gz
+cd cuda-samples-${ENV_VERSION_CUDA_SAMPLE}/Samples/1_Utilities/bandwidthTest
+make -j20
+ls
+rm -rf /buildCudaSample || true
+mkdir /buildCudaSample
+install bandwidthTest /buildCudaSample/
+cd /tmp
+rm -rf /tmp/build

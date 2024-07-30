@@ -26,7 +26,8 @@ export ENV_DOWNLOAD_OFED_DEB_SOURCE="https://linux.mellanox.com/public/repo/mlnx
 # https://developer.nvidia.com/cuda-downloads
 export ENV_CUDA_DEB_SOURCE="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb"
 
-
+# https://github.com/NVIDIA/cuda-samples
+export ENV_VERSION_CUDA_SAMPLE=${ENV_VERSION_CUDA_SAMPLE:-"v12.5"}
 
 
 echo "------------------------ Generate Dockerfile ---------------------------"
