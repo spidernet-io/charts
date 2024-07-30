@@ -53,7 +53,7 @@ rm -rf /tmp/build
 
 echo "--------------- install gdrcopy lib -------------------"
 echo "build gdrcopy with commit ${ENV_GDRCOPY_COMMIT} "
-apt install  -y --no-install-recommends  build-essential devscripts debhelper fakeroot pkg-config dkms
+apt install  -y --no-install-recommends  build-essential devscripts debhelper fakeroot pkg-config dkms unzip
 
 rm -rf /tmp/build || true
 mkdir /tmp/build
