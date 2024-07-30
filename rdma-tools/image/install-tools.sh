@@ -10,6 +10,7 @@ set -o pipefail
 set -o nounset
 
 InstallNccl(){
+  echo " install nccl"
 
   cd /tmp
   rm * -rf || true
@@ -35,6 +36,7 @@ InstallSSH(){
 }
 
 InstallOfed(){
+  echo " install ofed lib"
   # required by perftest
   # Mellanox OFED (latest)
   wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -
@@ -44,6 +46,7 @@ InstallOfed(){
 }
 
 InstallEnv(){
+  echo " install enviroment for hpcx"
     chmod +x /printpaths.sh
     # HPC-X Environment variables
     source /opt/hpcx/hpcx-init.sh
@@ -70,6 +73,15 @@ InstallEnv(){
     rm /printpaths.sh
     ldconfig
 }
+
+
+InstallGdrCopy(){
+    echo "install gdrcopy library"
+    cd /buildGdrcopy
+    dpkg -i *.deb
+    rm -rf  /buildGdrcopy
+}
+
 
 packages=(
   iproute2

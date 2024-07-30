@@ -49,3 +49,22 @@ mkdir /buildCudaSample
 install bandwidthTest /buildCudaSample/
 cd /tmp
 rm -rf /tmp/build
+
+
+echo "--------------- install gdrcopy lib -------------------"
+apt install  -y --no-install-recommends  build-essential devscripts debhelper fakeroot pkg-config dkms
+
+rm -rf /tmp/build || true
+mkdir /tmp/build
+cd /tmp/build
+wget --no-check-certificate https://github.com/NVIDIA/gdrcopy/archive/refs/heads/master.zip
+unzip master.zip
+cd gdrcopy*/packages
+CUDA=/usr/local/cuda  ./build-deb-packages.sh -k
+rm -rf /buildGdrcopy || true
+mkdir /buildGdrcopy
+cp  libgdrapi_*.deb  /buildGdrcopy
+cp  gdrcopy-tests_*.deb  /buildGdrcopy
+
+
+

@@ -66,6 +66,7 @@ COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
 COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
+COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
 
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
