@@ -21,6 +21,7 @@ InstallNccl(){
   apt install -y libnccl2 libnccl-dev
   rm * -rf || true
 
+  echo "ulimit -l 2000000" >> /etc/bash.bashrc
   echo "* soft memlock unlimited" >> /etc/security/limits.conf
   echo "* hard memlock unlimited" >> /etc/security/limits.conf
 }
@@ -43,8 +44,6 @@ InstallOfed(){
   cd /etc/apt/sources.list.d/
   wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get install -y --no-install-recommends  libibverbs-dev libibumad3 libibumad-dev librdmacm-dev
-
-  echo "ulimit -l 2000000" >> /etc/bash.bashrc
 
 }
 
