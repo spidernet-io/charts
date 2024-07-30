@@ -52,13 +52,15 @@ rm -rf /tmp/build
 
 
 echo "--------------- install gdrcopy lib -------------------"
+echo "build gdrcopy with commit ${ENV_GDRCOPY_COMMIT} "
 apt install  -y --no-install-recommends  build-essential devscripts debhelper fakeroot pkg-config dkms
 
 rm -rf /tmp/build || true
 mkdir /tmp/build
 cd /tmp/build
-wget --no-check-certificate https://github.com/NVIDIA/gdrcopy/archive/refs/heads/master.zip
-unzip master.zip
+wget --no-check-certificate https://github.com/NVIDIA/gdrcopy/archive/${ENV_GDRCOPY_COMMIT}.zip
+unzip *.zip
+ls
 cd gdrcopy*/packages
 CUDA=/usr/local/cuda  ./build-deb-packages.sh -k
 rm -rf /buildGdrcopy || true

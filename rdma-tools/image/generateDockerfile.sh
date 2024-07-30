@@ -29,6 +29,10 @@ export ENV_CUDA_DEB_SOURCE="https://developer.download.nvidia.com/compute/cuda/r
 # https://github.com/NVIDIA/cuda-samples
 export ENV_VERSION_CUDA_SAMPLE=${ENV_VERSION_CUDA_SAMPLE:-"v12.5"}
 
+# https://github.com/NVIDIA/gdrcopy/tree/master
+# 2024.7.30
+export ENV_GDRCOPY_COMMIT=${ENV_GDRCOPY_COMMIT:-"1366e20d140c5638fcaa6c72b373ac69f7ab2532"}
+
 
 echo "------------------------ Generate Dockerfile ---------------------------"
 
