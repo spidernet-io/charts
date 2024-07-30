@@ -50,6 +50,7 @@ ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 COPY /install-tools.sh /install-tools.sh
 COPY /test.sh /test.sh
 COPY /tools /tools
+COPY /printpaths.sh /printpaths.sh
 
 # Change the number to force the generation of a new git-tree SHA. Useful when
 # we want to re-run 'apt-get upgrade' for stale images.
@@ -59,43 +60,13 @@ ENV FORCE_BUILD=1
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
 
-WORKDIR /
-RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
-RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
-
-
 COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
 COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
 
-# HPC-X Environment variables
-COPY ./printpaths.sh /tmp
-RUN source /opt/hpcx/hpcx-init.sh && \
-    hpcx_load && \
-    # Uncomment to stop a run early with the ENV definitions for the below section
-    # /tmp/printpaths.sh ENV && false && \
-    # Preserve environment variables in new login shells \
-    alias install='install --owner=0 --group=0' && \
-    /tmp/printpaths.sh export \
-      | install --mode=644 /dev/stdin /etc/profile.d/hpcx-env.sh && \
-    # Preserve environment variables (except *PATH*) when sudoing
-    install -d --mode=0755 /etc/sudoers.d && \
-    /tmp/printpaths.sh \
-      | sed -E -e '{ \
-          # Convert NAME=value to just NAME \
-          s:^([^=]+)=.*$:\1:g ; \
-          # Filter out any variables with PATH in their names \
-          /PATH/d ; \
-          # Format them into /etc/sudoers env_keep directives \
-          s:^.*$:Defaults env_keep += "\0":g \
-        }' \
-      | install --mode=440 /dev/stdin /etc/sudoers.d/hpcx-env && \
-    # Register shared libraries with ld regardless of LD_LIBRARY_PATH
-    echo $LD_LIBRARY_PATH | tr ':' '\n' \
-      | install --mode=644 /dev/stdin /etc/ld.so.conf.d/hpcx.conf && \
-    rm /tmp/printpaths.sh
-RUN ldconfig
-
+WORKDIR /
+RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
+RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
 
