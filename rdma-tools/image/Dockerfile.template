@@ -71,6 +71,9 @@ RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
 
+USER root
+RUN ulimit -l 2000000 && sudo service ssh start
+
 # Begin auto-generated paths
 ENV HPCX_DIR=/opt/hpcx
 ENV HPCX_UCX_DIR=/opt/hpcx/ucx
@@ -99,8 +102,5 @@ ENV OLD_CPATH=""
 ENV CPATH=/opt/hpcx/ompi/include:/opt/hpcx/ucc/include:/opt/hpcx/ucx/include:/opt/hpcx/sharp/include:/opt/hpcx/hcoll/include:
 ENV PKG_CONFIG_PATH=/opt/hpcx/hcoll/lib/pkgconfig:/opt/hpcx/sharp/lib/pkgconfig:/opt/hpcx/ucx/lib/pkgconfig:/opt/hpcx/ompi/lib/pkgconfig:
 # End of auto-generated paths
-
-
-RUN sudo ulimit -l 2000000 && sudo service ssh start
 
 CMD ["/entry.sh"]
