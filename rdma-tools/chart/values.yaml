@@ -38,6 +38,11 @@ securityContext:
   #capabilities:
   #  add: [ "IPC_LOCK" ]
 
+
+command:
+  #- "/usr/bin/sleep"
+  #- "infinity"
+
 extraEnv: []
 
 extraVolumes: []

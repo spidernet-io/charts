@@ -20,20 +20,19 @@ InstallNccl(){
   apt install -y libnccl2 libnccl-dev
   rm * -rf || true
 
+  ulimit -l 1048576
   echo "* soft memlock unlimited" >> /etc/security/limits.conf
   echo "* hard memlock unlimited" >> /etc/security/limits.conf
 }
 
 InstallSSH(){
   mkdir /root/.ssh
-  ssh-keygen -t ed25519 -f ~/.ssh/id_spidernet -N ""
-  cat ~/.ssh/id_spidernet.pub >> ~/.ssh/authorized_keys
+  ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+  cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
 
   sed -i 's/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g' /etc/ssh/ssh_config
   echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config
   sed -i 's/#\(StrictModes \).*/\1no/g' /etc/ssh/sshd_config
-
-  service ssh start
 }
 
 InstallOfed(){

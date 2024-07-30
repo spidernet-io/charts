@@ -51,7 +51,12 @@ spec:
         - name: {{ .Values.name | trunc 63 | trimSuffix "-" }}
           image: {{ include "project.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/usr/bin/sleep", "infinity"]
+          {{- if .Values.command }}
+          command:
+          {{- with .Values.command }}
+          {{- toYaml . | nindent 10  }}
+          {{- end }}
+          {{- end }}
           ports:
             - name: ssh
               containerPort: 22

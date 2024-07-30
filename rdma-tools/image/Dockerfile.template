@@ -51,6 +51,7 @@ COPY /install-tools.sh /install-tools.sh
 COPY /test.sh /test.sh
 COPY /tools /tools
 COPY /printpaths.sh /printpaths.sh
+COPY /entry.sh /entry.sh
 
 # Change the number to force the generation of a new git-tree SHA. Useful when
 # we want to re-run 'apt-get upgrade' for stale images.
@@ -70,4 +71,34 @@ RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
 
-CMD ["/usr/bin/sleep","infinity"]
+# Begin auto-generated paths
+ENV HPCX_DIR=/opt/hpcx
+ENV HPCX_UCX_DIR=/opt/hpcx/ucx
+ENV HPCX_UCC_DIR=/opt/hpcx/ucc
+ENV HPCX_SHARP_DIR=/opt/hpcx/sharp
+ENV HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR=/opt/hpcx/nccl_rdma_sharp_plugin
+ENV HPCX_HCOLL_DIR=/opt/hpcx/hcoll
+ENV HPCX_MPI_DIR=/opt/hpcx/ompi
+ENV HPCX_OSHMEM_DIR=/opt/hpcx/ompi
+ENV HPCX_MPI_TESTS_DIR=/opt/hpcx/ompi/tests
+ENV HPCX_OSU_DIR=/opt/hpcx/ompi/tests/osu-micro-benchmarks
+ENV HPCX_OSU_CUDA_DIR=/opt/hpcx/ompi/tests/osu-micro-benchmarks-cuda
+ENV HPCX_IPM_DIR=""
+ENV HPCX_CLUSTERKIT_DIR=/opt/hpcx/clusterkit
+ENV OMPI_HOME=/opt/hpcx/ompi
+ENV MPI_HOME=/opt/hpcx/ompi
+ENV OSHMEM_HOME=/opt/hpcx/ompi
+ENV OPAL_PREFIX=/opt/hpcx/ompi
+ENV OLD_PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/opt/hpcx/sharp/bin:/opt/hpcx/clusterkit/bin:/opt/hpcx/hcoll/bin:/opt/hpcx/ucc/bin:/opt/hpcx/ucx/bin:/opt/hpcx/ompi/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV OLD_LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:<<ENV_LD_LIBRARY_PATH>>
+ENV LD_LIBRARY_PATH=<<ENV_LD_LIBRARY_PATH>>:/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ucc/lib/ucc:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib/ucx:/opt/hpcx/ucx/lib:/opt/hpcx/sharp/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+ENV OLD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs
+ENV LIBRARY_PATH=/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ompi/lib:/opt/hpcx/sharp/lib:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/cuda/lib64/stubs
+ENV OLD_CPATH=""
+ENV CPATH=/opt/hpcx/ompi/include:/opt/hpcx/ucc/include:/opt/hpcx/ucx/include:/opt/hpcx/sharp/include:/opt/hpcx/hcoll/include:
+ENV PKG_CONFIG_PATH=/opt/hpcx/hcoll/lib/pkgconfig:/opt/hpcx/sharp/lib/pkgconfig:/opt/hpcx/ucx/lib/pkgconfig:/opt/hpcx/ompi/lib/pkgconfig:
+# End of auto-generated paths
+
+RUN ulimit -l 1048576
+CMD ["/entry.sh"]
