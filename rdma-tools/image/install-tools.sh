@@ -51,14 +51,14 @@ InstallEnv(){
     source /opt/hpcx/hpcx-init.sh
     hpcx_load
     # Uncomment to stop a run early with the ENV definitions for the below section
-    # /tmp/printpaths.sh ENV && false
+    # /printpaths.sh ENV && false
     # Preserve environment variables in new login shells
     alias install='install --owner=0 --group=0'
-    /tmp/printpaths.sh export \
+    /printpaths.sh export \
       | install --mode=644 /dev/stdin /etc/profile.d/hpcx-env.sh
     # Preserve environment variables (except *PATH*) when sudoing
     install -d --mode=0755 /etc/sudoers.d
-    /tmp/printpaths.sh \
+    /printpaths.sh \
       | sed -E -e '{ \
           # Convert NAME=value to just NAME \
           s:^([^=]+)=.*$:\1:g ; \
