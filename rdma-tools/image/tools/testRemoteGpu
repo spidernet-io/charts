@@ -6,6 +6,7 @@
 # test GDR: local node against a remote node , with rdma device in the same subnet
 # todo: support infiniband
 
+
 #set -x
 #set -o pipefail
 set -o errexit
@@ -17,7 +18,7 @@ source /usr/sbin/rdmatools
 [ -n "${REMOTE_IP}" ] || REMOTE_IP=$( getOneRemoteEndpoint )
 
 
-ulimit -l 2000000
+#ulimit -l 2000000
 TestPerftestGpu(){
 
     echo ""
@@ -88,7 +89,8 @@ TestPerftestGpu(){
     sleep 3
 
     echo "clinet on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1  ${LOCAL_RDMA_IP} "
-    ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1 ${LOCAL_RDMA_IP} "
+    #ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1 ${LOCAL_RDMA_IP} "
+    ssh ${REMOTE_IP}  " ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1 ${LOCAL_RDMA_IP} "
 
 }
 TestPerftestGpu

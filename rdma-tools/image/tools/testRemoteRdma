@@ -23,7 +23,7 @@ fi
 REMOTE_IP=$( getOneRemoteEndpoint )
 LOCAL_RDMA_INFO=$( GetLocalRoceDeviceIP )
 REMOTE_RDMA_INFO=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRoceDeviceIP " )
-ulimit -l 2000000
+#ulimit -l 2000000
 
 
 
@@ -65,14 +65,17 @@ TestPerftestRdma(){
                 if [ "${REMOTE_MASK}"x == "${LOCAL_MASK}"x ] && [ -n "${LOCAL_MASK}" ]; then
                     if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}" ; then
                         echo ""
+                        echo "------------------------------------------------------------------------------------------------------------------------------"
                         echo "---------- case: 127.0.0.1 (${LOCAL_DEVICE} ${LOCAL_IP}) vs remote ${REMOTE_IP} (${REMOTE_DEVICE} ${REMOTE_IP})---------------"
+                        echo "------------------------------------------------------------------------------------------------------------------------------"
+                        ssh ${REMOTE_IP}  " PID=\`ps aux | grep ib_write_bw | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
                         (
-                            echo "on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1"
-                            ssh ${REMOTE_IP}  " PID=\`ps aux | grep ib_write_bw | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  "
-                            ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1 "
+                            echo "server on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1"
+                            #ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1 "
+                            ssh ${REMOTE_IP}  " ib_write_bw -d ${REMOTE_DEVICE} -a -F --report_gbits -q 1 "
                         )&
                         sleep 3
-                        echo "on local: ib_write_bw -d ${LOCAL_DEVICE}  -a -F --report_gbits -q 1 ${REMOTE_IP} "
+                        echo "clinet on local: ib_write_bw -d ${LOCAL_DEVICE}  -a -F --report_gbits -q 1 ${REMOTE_IP} "
                         ib_write_bw -d ${LOCAL_DEVICE}  -a -F --report_gbits -q 1 ${REMOTE_IP}
                     fi
                 fi
