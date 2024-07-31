@@ -67,5 +67,12 @@ echo "----------- inxi  ------------------"
 inxi -v8
 
 echo ""
+echo "----------- gdrcopy_sanity  ------------------"
+major=`fgrep gdrdrv /proc/devices | cut -b 1-4`
+mknod /dev/gdrdrv c $major 0
+chmod a+w+r /dev/gdrdrv
+gdrcopy_sanity || true
+
+echo ""
 echo "----------- wait looply.... ---------- "
 /usr/bin/sleep infinity

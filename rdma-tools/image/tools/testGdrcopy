@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+#set -x
+#set -o pipefail
+set -o errexit
+set -o nounset
+
+source /usr/sbin/rdmatools
+GPU_NUM=$( GetGPUAmount )
+
+(( GPU_NUM > 0 )) || { echo "error, there is no GPU detected" ; exit 1 ; }
+echo "there is ${GPU_NUM} GPU locally"
+
+RunTest(){
+  CMD=${1:-""}
+  for (( N=0 ; N < GPU_NUM; N++)); do
+        echo ""
+        echo "***************************************************************************************************************"
+        echo "********************                     ${CMD}  on GPU ${N}            ****************************************"
+        echo "***************************************************************************************************************"
+        eval ${CMD} -d ${N} || exit 1
+        echo ""
+  done
+}
+
+for ITEM in "gdrcopy_copylat -c " "gdrcopy_copybw" "gdrcopy_pplat" ; do
+    RunTest "${ITEM}"
+done
+
+
+echo ""
+echo "***************************************************************************************************************"
+echo "********************                     bandwidthTest                 ****************************************"
+echo "***************************************************************************************************************"
+bandwidthTest
+

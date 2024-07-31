@@ -27,6 +27,7 @@ InstallNccl(){
 }
 
 InstallSSH(){
+  # for mpirun
   mkdir /root/.ssh
   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
   cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
@@ -37,8 +38,8 @@ InstallSSH(){
 }
 
 InstallOfed(){
-  echo " install ofed lib"
   # required by perftest
+  echo " install ofed lib"
   # Mellanox OFED (latest)
   wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -
   cd /etc/apt/sources.list.d/
@@ -48,7 +49,7 @@ InstallOfed(){
 }
 
 InstallEnv(){
-  echo " install enviroment for hpcx"
+  echo " install enviroment for hpc-x"
     chmod +x /printpaths.sh
     # HPC-X Environment variables
     source /opt/hpcx/hpcx-init.sh

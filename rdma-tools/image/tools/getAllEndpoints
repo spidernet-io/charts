@@ -43,4 +43,5 @@ set -o nounset
 
 } 1>&2
 
-echo -n "${ALL_IP_LINE}"
+# output IP in each line, owing to count the amount
+echo -n "${ALL_IP}"

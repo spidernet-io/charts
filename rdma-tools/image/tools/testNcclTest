@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+#set -x
+#set -o pipefail
+set -o errexit
+set -o nounset
+
+
+source /usr/sbin/rdmatools
+GPU_NUM=$( GetGPUAmount )
+(( GPU_NUM > 0 )) || { echo "error, there is no GPU detected" ; exit 1 ; }
+echo "there is ${GPU_NUM} GPU locally"
+
+POD_IP_LIST=$( getAllEndpoints 2>/dev/null )
+POD_NUM=$( echo "${POD_IP_LIST}" | wc -l )
+HOST_LIST=$( echo -n "${POD_IP_LIST}" | tr '\n' ',' )
+(( POD_NUM > 0 )) || { echo "error, failed to detect pods" ; exit 1 ; }
+
+
+CMD_NAME=${CMD_NAME:-"all_reduce_perf"}
+CMD_OPTIONS=${CMD_OPTIONS:-"-b 512M -e 8G -f 2  -n 1 "}
+
+
+echo ""
+echo "***************************************************************************************************************"
+echo "********************              nccl-test: mpirun for ${CMD_NAME}                ************************"
+echo "***************************************************************************************************************"
+
+PARAMETERS=" -np $(( GPU_NUM * POD_NUM ))  -N ${GPU_NUM} -H ${HOST_LIST}  \
+   --bind-to none \
+   -x PATH \
+   -x LD_LIBRARY_PATH \
+   -x NCCL_GDRCOPY_ENABLE=1 \
+   -x NCCL_NET_GDR_READ=1 \
+   /usr/bin/${CMD_NAME} -g 1 ${CMD_OPTIONS}
+"
+
+echo ""
+echo " mpirun: ${PARAMETERS} "
+echo ""
+
+# todo: each process own one GPU
+
+# for log
+mpirun -x NCCL_DEBUG=INFO -x NCCL_DEBUG_SUBSYS=ALL  ${PARAMETERS}
+
+echo ""
+# for result
+mpirun  ${PARAMETERS}

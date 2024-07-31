@@ -93,15 +93,16 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- if .Values.extraVolumes }}
           volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
             {{- if .Values.extraVolumes }}
-            {{- include "tplvalues.render" ( dict "value" .Values.extraVolumeMounts "context" $ ) | nindent 12 }}
+            {{- include "tplvalues.render" ( dict "value" .Values.extraVolumes "context" $ ) | nindent 12 }}
             {{- end }}
-          {{- end }}
-      {{- if .Values.extraVolumes }}
       volumes:
+        - emptyDir:
+            medium: Memory
+          name: dshm
       {{- if .Values.extraVolumeMounts }}
       {{- include "tplvalues.render" ( dict "value" .Values.extraVolumeMounts "context" $ ) | nindent 6 }}
-      {{- end }}
       {{- end }}
