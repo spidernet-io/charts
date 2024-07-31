@@ -33,20 +33,43 @@ PARAMETERS=" -np $(( GPU_NUM * POD_NUM ))  -N ${GPU_NUM} -H ${HOST_LIST}  \
    --bind-to none \
    -x PATH \
    -x LD_LIBRARY_PATH \
-   -x NCCL_GDRCOPY_ENABLE=1 \
-   -x NCCL_NET_GDR_READ=1 \
    /usr/bin/${CMD_NAME} -g 1 ${CMD_OPTIONS}
 "
 
-echo ""
-echo " mpirun: ${PARAMETERS} "
-echo ""
 
 # todo: each process own one GPU
 
 # for log
-mpirun -x NCCL_DEBUG=INFO -x NCCL_DEBUG_SUBSYS=ALL  ${PARAMETERS}
+echo "-------------------------------  run with enabling GDR and gdrCopy --------------------------"
+OPTIONS=" -x NCCL_DEBUG=INFO -x NCCL_DEBUG_SUBSYS=ALL \
+         -x NCCL_GDRCOPY_ENABLE=1 \
+         -x NCCL_NET_GDR_READ=1 \
+         ${PARAMETERS}  "
+echo ""
+echo " mpirun: ${OPTIONS} "
+echo ""
+mpirun ${OPTIONS}
+
+# for result
+echo ""
+echo "------------------------------  run with disabling GDR and gdrCopy -----------------------------"
+OPTIONS="\
+         -x NCCL_GDRCOPY_ENABLE=0 \
+         -x NCCL_NET_GDR_READ=0 \
+         ${PARAMETERS}  "
+echo ""
+echo " mpirun: ${OPTIONS} "
+echo ""
+mpirun ${OPTIONS}
+
 
 echo ""
-# for result
-mpirun  ${PARAMETERS}
+echo "-----------------------------   run with enabling GDR and gdrCopy -------------------------------"
+OPTIONS="\
+         -x NCCL_GDRCOPY_ENABLE=1 \
+         -x NCCL_NET_GDR_READ=1 \
+         ${PARAMETERS}  "
+echo ""
+echo " mpirun: ${OPTIONS} "
+echo ""
+mpirun ${OPTIONS}

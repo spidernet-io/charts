@@ -31,8 +31,12 @@ echo "----------- show_gids ------------------"
 show_gids
 
 echo ""
-echo "----------- ip a ------------------"
+echo "----------- ip ------------------"
 ip a
+echo ""
+ip route
+echo ""
+ip rule
 
 echo ""
 echo "=---------- rdma device information ----------------"
@@ -68,10 +72,14 @@ inxi -v8
 
 echo ""
 echo "----------- gdrcopy_sanity  ------------------"
-major=`fgrep gdrdrv /proc/devices | cut -b 1-4`
-mknod /dev/gdrdrv c $major 0
-chmod a+w+r /dev/gdrdrv
-gdrcopy_sanity || true
+major=`fgrep gdrdrv /proc/devices | cut -b 1-4` || true
+if [ -n "${major}" ] ; then
+    mknod /dev/gdrdrv c $major 0
+    chmod a+w+r /dev/gdrdrv
+    gdrcopy_sanity || true
+else
+    echo "error, failed to detect gdrdrv"
+fi
 
 echo ""
 echo "----------- wait looply.... ---------- "
