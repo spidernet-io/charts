@@ -108,6 +108,7 @@ packages=(
   curl
   jq
   inxi
+  hwloc
 )
 
 export DEBIAN_FRONTEND=noninteractive

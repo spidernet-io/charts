@@ -9,7 +9,8 @@ export ENV_BASEIMAGE_OS_VERISON=${ENV_BASEIMAGE_OS_VERISON:-"ubuntu22.04"}
 export ENV_BASEIMAGE_FULL_NAME=nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-runtime-${ENV_BASEIMAGE_OS_VERISON}
 export ENV_CUDA_DEV_IMAGE_NAME=nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-devel-${ENV_BASEIMAGE_OS_VERISON}
 
-export ENV_LD_LIBRARY_PATH="/usr/local/cuda-12.5/compat"
+# for cuda and libgdrapi.so
+export ENV_LD_LIBRARY_PATH="/usr/local/cuda-12.5/compat:/usr/lib/x86_64-linux-gnu"
 
 # https://github.com/linux-rdma/perftest
 export ENV_VERSION_PERFTEST=${ENV_VERSION_PERFTEST:-"24.04.0-0.41"}

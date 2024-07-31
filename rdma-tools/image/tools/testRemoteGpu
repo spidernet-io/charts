@@ -3,7 +3,7 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
-# test GDR: local node against a remote node , with rdma device in the same subnet
+# ib_write_bw with GDR : test GDR: local node against a remote node , with rdma device in the same subnet
 # todo: support infiniband
 
 
@@ -17,8 +17,8 @@ REMOTE_IP=${1:-""}
 source /usr/sbin/rdmatools
 [ -n "${REMOTE_IP}" ] || REMOTE_IP=$( getOneRemoteEndpoint )
 
+CMD_OPTIONS=${CMD_OPTIONS:-"-a -F --report_gbits -q 1"}
 
-#ulimit -l 2000000
 TestPerftestGpu(){
 
     echo ""
@@ -83,14 +83,14 @@ TestPerftestGpu(){
 
     (
         PID=`ps aux | grep ib_write_bw | grep -v grep | awk '{print $2}' ` && [ -n "${PID}" ] && kill -9 ${PID}
-        echo "server on local: ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} -a -F --report_gbits -q 1  "
-        ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} -a -F --report_gbits -q 1
+        echo "server on local: ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} ${CMD_OPTIONS}  "
+        ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} ${CMD_OPTIONS}
     )&
     sleep 3
 
-    echo "clinet on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1  ${LOCAL_RDMA_IP} "
-    #ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1 ${LOCAL_RDMA_IP} "
-    ssh ${REMOTE_IP}  " ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} -a -F --report_gbits -q 1 ${LOCAL_RDMA_IP} "
+    echo "clinet on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS}  ${LOCAL_RDMA_IP} "
+    #ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS} ${LOCAL_RDMA_IP} "
+    ssh ${REMOTE_IP}  " ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS} ${LOCAL_RDMA_IP} "
 
 }
 TestPerftestGpu

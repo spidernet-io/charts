@@ -55,6 +55,10 @@ echo "----------- nvidia-smi topo ------------------"
 nvidia-smi topo -m || true
 
 echo ""
+echo "----------- lstopo ------------------"
+lstopo
+
+echo ""
 echo "----------- nvidia-smi nvlink  ------------------"
 nvidia-smi nvlink -s || true
 
