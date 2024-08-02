@@ -18,7 +18,7 @@ InstallNccl(){
   wget --no-check-certificate ${ENV_CUDA_DEB_SOURCE}
   dpkg -i *.deb
   apt-get update
-  apt install -y libnccl2 libnccl-dev
+  apt install --allow-change-held-packages -y libnccl2 libnccl-dev
   rm * -rf || true
 
   echo "ulimit -l 2000000" >> /etc/bash.bashrc
@@ -110,6 +110,7 @@ packages=(
   jq
   inxi
   hwloc
+  libgomp1
 )
 
 export DEBIAN_FRONTEND=noninteractive

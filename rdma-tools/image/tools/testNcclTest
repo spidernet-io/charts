@@ -23,6 +23,8 @@ HOST_LIST=$( echo -n "${POD_IP_LIST}" | tr '\n' ',' )
 CMD_NAME=${CMD_NAME:-"all_reduce_perf"}
 CMD_OPTIONS=${CMD_OPTIONS:-"-b 512M -e 8G -f 2  -n 1 "}
 
+# todo: check ethernet or infiband.
+# todo: for infiniband , test sharp: -x NCCL_COLLNET_ENABLE=1  -x NCCL_ALGO=CollNet
 
 echo ""
 echo "***************************************************************************************************************"

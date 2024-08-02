@@ -23,7 +23,7 @@ git push --tags
 
 ```shell
 helm repo add spiderchart https://spidernet-io.github.io/charts
-helm repo update
+helm repo update spiderchart
 helm search repo rdma-tools
 
 # run daemonset on worker1 and worker2 
