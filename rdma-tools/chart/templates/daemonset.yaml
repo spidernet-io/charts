@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name:  {{ .Values.name | trunc 63 | trimSuffix "-" }}
+  name:  {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+    app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
 spec:
   selector:
     matchLabels:
-      app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+      app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
   updateStrategy:
     type: OnDelete
   template:
     metadata:
       labels:
-        app: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+        app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
       {{- if .Values.extraAnnotations }}
       annotations:
         {{- include "tplvalues.render" ( dict "value" .Values.extraAnnotations "context" $ ) | nindent 8 }}
@@ -33,7 +33,7 @@ spec:
       hostNetwork: false
       dnsPolicy: ClusterFirst
       {{- end }}
-      serviceAccountName: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+      serviceAccountName: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
       restartPolicy: Always
       {{- with .Values.tolerations }}
       tolerations:
@@ -85,7 +85,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: ENV_SERVICE_NAME
-              value: {{ .Values.name | trunc 63 | trimSuffix "-" }}
+              value: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
             - name: ENV_POD_NAMESPACE
               valueFrom:
                 fieldRef:
