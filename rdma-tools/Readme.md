@@ -59,6 +59,7 @@ resources:
     # nvidia.com/gpu: 1
 
 #securityContext:
+#  privileged: true
 #  capabilities:
 #    add: [ "IPC_LOCK" ]
 EOF

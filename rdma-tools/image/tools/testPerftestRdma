@@ -21,29 +21,28 @@ else
 fi
 
 REMOTE_IP=$( getOneRemoteEndpoint )
+echo "collecting local information ..."
 LOCAL_RDMA_INFO=$( GetLocalRoceDeviceIP )
+echo "collecting remote ${REMOTE_IP} information ..."
 REMOTE_RDMA_INFO=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRoceDeviceIP " )
 #ulimit -l 2000000
 
-# ib_write_bw , ib_write_lat
-CMD_CLI=${CMD_CLI:-"ib_write_bw"}
-CMD_OPTIONS=${CMD_OPTIONS:-"-a -F --report_gbits"}
-
 TestPerftestRdma(){
-
     echo ""
     echo "***************************************************************************************************************"
-    echo "******************** case: test rdma between local node and a remote node ${REMOTE_IP} ************************"
+    echo "******************** ${CMD_CLI} case: test rdma between local node and a remote node ${REMOTE_IP} ************************"
     echo "***************************************************************************************************************"
     echo ""
 
-    # device  interface IP  Mask protocol
-    # mlx5_16 net1 172.81.1.143 16 RoceV2
+    # device  interface IP  Mask protocol index
+    # mlx5_16 net1 172.81.1.143 16 RoceV2 3
     echo ""
     echo "local node 127.0.0.1 information:"
+    echo "dev ifname ip mask proto index"
     echo "${LOCAL_RDMA_INFO}"
     echo ""
     echo "remote node ${REMOTE_IP} information:"
+    echo "dev ifname ip mask proto index"
     echo "${REMOTE_RDMA_INFO}"
 
     OLD=$IFS
@@ -55,6 +54,7 @@ TestPerftestRdma(){
         LOCAL_INTERFACE=$( echo "${ITEM}" | awk '{print $2}' )
         LOCAL_IP=$( echo "${ITEM}" | awk '{print $3}' )
         LOCAL_MASK=$( echo "${ITEM}" | awk '{print $4}' )
+        LOCAL_INDEX=$( echo "${ITEM}" | awk '{print $6}' )
 
         IFS=$'\n'
         for LINE in ${REMOTE_RDMA_INFO} ;do
@@ -63,22 +63,24 @@ TestPerftestRdma(){
             REMOTE_INTERFACE=$( echo "${LINE}" | awk '{print $2}' )
             REMOTE_IP=$( echo "${LINE}" | awk '{print $3}' )
             REMOTE_MASK=$( echo "${LINE}" | awk '{print $4}' )
+            REMOTE_INDEX=$( echo "${LINE}" | awk '{print $6}' )
             {
                 if [ "${REMOTE_MASK}"x == "${LOCAL_MASK}"x ] && [ -n "${LOCAL_MASK}" ]; then
                     if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}" ; then
                         echo ""
-                        echo "------------------------------------------------------------------------------------------------------------------------------"
-                        echo "---------- case: 127.0.0.1 (${LOCAL_DEVICE} ${LOCAL_IP}) vs remote ${REMOTE_IP} (${REMOTE_DEVICE} ${REMOTE_IP})---------------"
-                        echo "------------------------------------------------------------------------------------------------------------------------------"
+                        echo "=========================================================================================================================================================="
+                        echo "================   ${CMD_CLI} case: 127.0.0.1 (${LOCAL_DEVICE} ${LOCAL_IP}) vs remote ${REMOTE_IP} (${REMOTE_DEVICE} ${REMOTE_IP})   ================="
+                        echo "=========================================================================================================================================================="
                         ssh ${REMOTE_IP}  " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
                         (
-                            echo "server on remote ${REMOTE_IP}: ${CMD_CLI} -d ${REMOTE_DEVICE} ${CMD_OPTIONS}"
-                            #ssh ${REMOTE_IP}  " ulimit -l 2000000 && ${CMD_CLI} -d ${REMOTE_DEVICE} ${CMD_OPTIONS} "
-                            ssh ${REMOTE_IP}  " ${CMD_CLI} -d ${REMOTE_DEVICE} ${CMD_OPTIONS} "
+                            OPTIONS="-d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} ${CMD_OPTIONS} "
+                            echo "server on remote ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
+                            ssh ${REMOTE_IP}  " ${CMD_CLI} ${OPTIONS} "
                         )&
                         sleep 3
-                        echo "clinet on local: ${CMD_CLI} -d ${LOCAL_DEVICE} ${CMD_OPTIONS} ${REMOTE_IP} "
-                        ${CMD_CLI} -d ${LOCAL_DEVICE} ${CMD_OPTIONS} ${REMOTE_IP}
+                        OPTIONS="-d ${LOCAL_DEVICE} -x ${LOCAL_INDEX} ${CMD_OPTIONS} ${REMOTE_IP}"
+                        echo "clinet on local: ${CMD_CLI} ${OPTIONS}"
+                        ${CMD_CLI} ${OPTIONS}
                     fi
                 fi
             }
@@ -87,4 +89,20 @@ TestPerftestRdma(){
 
 }
 
+#-------------------------
+# ib_write_bw , ib_write_lat
+BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
+#CMD_OPTIONS=${CMD_OPTIONS:-"-a -F --report_gbits"}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--duration 10 --rdma_cm --report_gbits -F "}
+CMD_CLI="${BW_CMD_CLI}"
+CMD_OPTIONS="${BW_CMD_OPTIONS}"
+TestPerftestRdma
+
+#-------------------------
+# ib_write_bw , ib_write_lat
+LATENCY_CMD_CLI=${LATENCY_CMD_CLI:-"ib_write_lat"}
+#CMD_OPTIONS=${CMD_OPTIONS:-"-a -F --report_gbits"}
+LATENCY_CMD_OPTIONS=${LATENCY_CMD_OPTIONS:-"-a --rdma_cm -F "}
+CMD_CLI="${LATENCY_CMD_CLI}"
+CMD_OPTIONS="${LATENCY_CMD_OPTIONS}"
 TestPerftestRdma

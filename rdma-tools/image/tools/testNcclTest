@@ -18,10 +18,10 @@ POD_IP_LIST=$( getAllEndpoints 2>/dev/null )
 POD_NUM=$( echo "${POD_IP_LIST}" | wc -l )
 HOST_LIST=$( echo -n "${POD_IP_LIST}" | tr '\n' ',' )
 (( POD_NUM > 0 )) || { echo "error, failed to detect pods" ; exit 1 ; }
-
+echo "HOST_LIST: ${HOST_LIST}"
 
 CMD_NAME=${CMD_NAME:-"all_reduce_perf"}
-CMD_OPTIONS=${CMD_OPTIONS:-"-b 512M -e 8G -f 2  -n 1 "}
+CMD_OPTIONS=${CMD_OPTIONS:-"-b 100M -e 1G -f 2  -n 1 "}
 
 # todo: check ethernet or infiband.
 # todo: for infiniband , test sharp: -x NCCL_COLLNET_ENABLE=1  -x NCCL_ALGO=CollNet
@@ -31,7 +31,8 @@ echo "**************************************************************************
 echo "********************              nccl-test: mpirun for ${CMD_NAME}                ************************"
 echo "***************************************************************************************************************"
 
-PARAMETERS=" -np $(( GPU_NUM * POD_NUM ))  -N ${GPU_NUM} -H ${HOST_LIST}  \
+HOST_SLOT=$( echo -n "${HOST_LIST}" | tr ',' "\n" | sed -E 's?(.*)?\1:'${GPU_NUM}'?g' | tr '\n' ',' )
+PARAMETERS=" -np $(( GPU_NUM * POD_NUM )) -H ${HOST_SLOT}  \
    --bind-to none \
    -x PATH \
    -x LD_LIBRARY_PATH \
@@ -72,6 +73,6 @@ OPTIONS="\
          -x NCCL_NET_GDR_READ=1 \
          ${PARAMETERS}  "
 echo ""
-echo " mpirun: ${OPTIONS} "
+echo " mpirun ${OPTIONS} "
 echo ""
 mpirun ${OPTIONS}

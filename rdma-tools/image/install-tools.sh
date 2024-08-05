@@ -111,6 +111,7 @@ packages=(
   inxi
   hwloc
   libgomp1
+  kmod
 )
 
 export DEBIAN_FRONTEND=noninteractive

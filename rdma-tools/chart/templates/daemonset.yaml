@@ -45,7 +45,7 @@ spec:
       {{- end }}
       {{- if .Values.affinity }}
       affinity:
-      {{- include "tplvalues.render" (dict "value" .Values.affinity "context" $) | nindent 6 }}
+        {{- include "tplvalues.render" (dict "value" .Values.affinity "context" $) | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Values.name | trunc 63 | trimSuffix "-" }}
@@ -57,6 +57,10 @@ spec:
           {{- toYaml . | nindent 10  }}
           {{- end }}
           {{- end }}
+          readinessProbe:
+            exec:
+              command:
+                [sh, -c, 'ls /tmp/ready']
           ports:
             - name: ssh
               containerPort: 22

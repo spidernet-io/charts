@@ -6,6 +6,16 @@
 source /usr/sbin/rdmatools
 
 echo ""
+echo "namespace/pod: ${ENV_POD_NAMESPACE}/${ENV_POD_NAME}"
+echo "node name: ${ENV_LOCAL_NODE_NAME}"
+echo "node ip: ${ENV_LOCAL_NODE_IP}"
+echo ""
+
+echo "GIT_COMMIT_VERSION: ${GIT_COMMIT_VERSION}"
+echo "GIT_COMMIT_TIME: ${GIT_COMMIT_TIME}"
+echo "VERSION: ${VERSION}"
+
+echo ""
 echo "----------- start ssh---------"
 service ssh start
 
@@ -55,6 +65,10 @@ echo "----------- ibdev2netdev ------------------"
 ibdev2netdev
 
 echo ""
+echo "----------- nvidia-smi ------------------"
+nvidia-smi || true
+
+echo ""
 echo "----------- nvidia-smi topo ------------------"
 nvidia-smi topo -m || true
 
@@ -82,5 +96,10 @@ else
 fi
 
 echo ""
+echo "----------- lsmod  ------------------"
+lsmod
+
+echo ""
 echo "----------- wait looply.... ---------- "
+touch /tmp/ready
 /usr/bin/sleep infinity

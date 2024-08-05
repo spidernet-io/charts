@@ -7,13 +7,12 @@
 # todo: just support RoceV2, need to support inifiband
 GetLocalRoceDeviceIP(){
 # output:
-# device  interface IP  Mask protocol
-# mlx5_16 net1 172.81.1.143 16 RoceV2
+# device  interface IP  Mask protocol  bset_index
+# mlx5_16 net1 172.81.1.143 16 RoceV2  3
     {
+        # device  ip   index
         # mlx5_16 172.81.1.143
-        # mlx5_16 172.81.1.143
-        RAW_INFO=$( show_gids | grep -E "[0-9]+(\.[0-9]+){3}[[:space:]]+v2" | sed -E 's?^([^[:space:]]+)[[:space:]]+.*[[:space:]]+([^[:space:]]+)[[:space:]]+v2.*?\1 \2?g' )
-        DEV_INFO=$( ibdev2netdev )
+        RAW_INFO=$( show_gids | grep -E "[0-9]+(\.[0-9]+){3}[[:space:]]+v2" | sed -E 's?^([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+v2.*?\1 \5 \3?g' )
 
         RESULT=""
         OLD=$IFS
@@ -21,16 +20,17 @@ GetLocalRoceDeviceIP(){
         for ITEM in ${RAW_INFO} ;do
             RDMA_DEVICE=$( echo "$ITEM" | awk  '{print $1}' )
             RDMA_ADDR=$( echo "$ITEM" | awk  '{print $2}' )
+            RDMA_INDEX=$( echo "$ITEM" | awk  '{print $3}' )
 
-            INTERFACE_NAME=$( echo "${DEV_INFO}" | grep -E "^${RDMA_DEVICE} " | head -1 | awk '{print $5}' )
+            INTERFACE_NAME=$( ip r | grep "src ${RDMA_ADDR}" | grep -Eo " dev [^[:space:]]+ " | awk '{print $2}' | head -1 )
             [ -n "${INTERFACE_NAME}" ] || { echo "failed to find interface for rdma device ${RDMA_DEVICE} " ; continue ;  }
             IP_MASK_LENGTH=$( ip a s ${INTERFACE_NAME} | grep -oP "(?<=inet\s)${RDMA_ADDR}/[0-9]+" | awk -F'/' '{print $2}' )
             RESULT="${RESULT}
-${RDMA_DEVICE} ${INTERFACE_NAME} ${RDMA_ADDR} ${IP_MASK_LENGTH}  RoceV2 "
+${RDMA_DEVICE} ${INTERFACE_NAME} ${RDMA_ADDR} ${IP_MASK_LENGTH}  RoceV2 ${RDMA_INDEX}"
         done
         IFS=$OLD
     } 1>&2
-    [ -n "${RESULT}" ] && echo ${RESULT}
+    [ -n "${RESULT}" ] && echo "${RESULT}"
 }
 
 CheckIPv4SameSubnet(){

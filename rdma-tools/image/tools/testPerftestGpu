@@ -31,22 +31,33 @@ TestPerftestGpu(){
     RDMA_DEV_LIST=$( GetRdmaDevList ) || { echo "error, there is RDMA device locally" ; exit 1 ; }
 
     echo "---------local 127.0.0.1 topo:"
-    nvidia-smi topo -m
+    nvidia-smi topo -m || true
     GetLocalRoceDeviceIP
     echo ""
     echo "GPU range: 0 ... $((GPU_TOTAL-1))"
-    echo -n "Please input the expected GPU number of local node: "
-    read LOCAL_GPU_NUM
-    echo ""
-    CheckGpuIdValidity "${LOCAL_GPU_NUM}" || exit 1
+    while :; do
+      echo ""
+      echo -n "Please input the expected GPU number of local node: "
+      read LOCAL_GPU_NUM
+      if [ -n "${LOCAL_GPU_NUM}" ] ; then
+         CheckGpuIdValidity "${LOCAL_GPU_NUM}" || continue
+         break
+      fi
+    done
     echo ""
     show_gids
     echo ""
     echo "Rdma device: ${RDMA_DEV_LIST}"
-    echo -n "Please input the expected RDMA device of local node: "
-    read LOCAL_RDMA_DEV
+    while :; do
+        echo ""
+        echo -n "Please input the expected RDMA device of local node: "
+        read LOCAL_RDMA_DEV
+        if [ -n "${LOCAL_RDMA_DEV}" ] ; then
+            CheckRdmaDevValidity "${LOCAL_RDMA_DEV}" || continue
+            break
+        fi
+    done
     echo ""
-    CheckRdmaDevValidity "${LOCAL_RDMA_DEV}" || exit 1
     LOCAL_RDMA_IP=$( GetBestRdmaDeviceIP "${LOCAL_RDMA_DEV}" )
     [ -n "${LOCAL_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${LOCAL_RDMA_DEV}" ; exit 1 ;  }
 
@@ -55,22 +66,32 @@ TestPerftestGpu(){
     RDMA_DEV_LIST=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetRdmaDevList " ) || { echo "error, there is RDMA device on remote ${REMOTE_IP}" ; exit 1 ; }
     echo ""
     echo "---------remote ${REMOTE_IP} topo:"
-    ssh ${REMOTE_IP} " nvidia-smi topo -m "
+    ssh ${REMOTE_IP} " nvidia-smi topo -m || true "
     ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRoceDeviceIP "
     echo ""
     echo "GPU range: 0 ... $((GPU_TOTAL-1))"
-    echo -n "Please input the expected GPU number of remote node ${REMOTE_IP}: "
-    read REMOTE_GPU_NUM
-    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckGpuIdValidity ${REMOTE_GPU_NUM}  " || exit 1
-    echo ""
+    while :; do
+        echo ""
+        echo -n "Please input the expected GPU number of remote node ${REMOTE_IP}: "
+        read REMOTE_GPU_NUM
+        if [ -n "${REMOTE_GPU_NUM}" ] ; then
+            ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckGpuIdValidity ${REMOTE_GPU_NUM}  " || continue
+            break
+        fi
+    done
     echo ""
     ssh ${REMOTE_IP} " show_gids "
     echo ""
     echo "Rdma device: ${RDMA_DEV_LIST}"
-    echo -n "Please input the expected RDMA device of remote node ${REMOTE_IP}: "
-    read REMOTE_RDMA_DEV
-    echo ""
-    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckRdmaDevValidity ${REMOTE_RDMA_DEV}  " || exit 1
+    while :; do
+        echo ""
+        echo -n "Please input the expected RDMA device of remote node ${REMOTE_IP}: "
+        read REMOTE_RDMA_DEV
+        if [ -n "${REMOTE_RDMA_DEV}" ] ; then
+            ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckRdmaDevValidity ${REMOTE_RDMA_DEV}  " || continue
+            break
+        fi
+    done
     REMOTE_RDMA_IP=$(  ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetBestRdmaDeviceIP ${REMOTE_RDMA_DEV}  " )
     [ -n "${REMOTE_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${REMOTE_RDMA_IP}" ; exit 1 ;  }
 

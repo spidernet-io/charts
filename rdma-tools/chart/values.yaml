@@ -20,8 +20,10 @@ nodeSelector:
 affinity: {}
 
 resources:
-  #limits:
-  #  spidernet.io/gpu1sriov: 1
+  limits:
+    cpu: 2000m
+    memory: 4000Mi
+#   spidernet.io/sriov: 1
   requests:
     cpu: 200m
     memory: 150Mi
@@ -34,10 +36,9 @@ extraAnnotations:
   #    {"name":"gpu8-sriov","namespace":"spiderpool"}]
 
 securityContext:
-  privileged: true
+  #privileged: true
   #capabilities:
   #  add: [ "IPC_LOCK" ]
-
 
 command:
   #- "/usr/bin/sleep"
