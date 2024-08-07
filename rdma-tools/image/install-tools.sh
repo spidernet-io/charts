@@ -44,6 +44,8 @@ InstallOfed(){
   wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -
   cd /etc/apt/sources.list.d/
   wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
+  apt-get update
+
   apt-get install -y --no-install-recommends  libibverbs-dev libibumad3 libibumad-dev librdmacm-dev
   # ibstat
   apt-get install -y infiniband-diags=2404mlnx51-1.2404066
@@ -111,6 +113,10 @@ packages=(
   hwloc
   libgomp1
   kmod
+  #ibverbs-utils
+  #infiniband-diags
+  #rdmacm-utils
+  #ibutils
 )
 
 export DEBIAN_FRONTEND=noninteractive
