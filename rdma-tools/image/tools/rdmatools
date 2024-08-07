@@ -4,11 +4,69 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+GetInfinibandUpCa(){
+  CA_LIST=""
+  {
+    ALL_CA=$( ibstat -l )
+    for NAME in ${ALL_CA} ; do
+        { ibstatus ${NAME} | grep -E "state:.*ACTIVE" &>/dev/null ; } || continue
+        if ibstatus ${NAME} | grep -E "link_layer:.*InfiniBand" &>/dev/null ; then
+            CA_LIST="${CA_LIST} ${NAME}"
+        fi
+    done
+  } 1>&2
+  [ -n "${CA_LIST}" ] && { echo "${CA_LIST}" | tr ' ' '\n' | sed -E '/^$/ d' ; }
+}
+
+GetEthernetUpCa(){
+  CA_LIST=""
+  {
+    ALL_CA=$( ibstat -l )
+    for NAME in ${ALL_CA} ; do
+        { ibstatus ${NAME} | grep -E "state:.*ACTIVE" &>/dev/null ; } || continue
+        if ibstatus ${NAME} | grep -E "link_layer:.*Ethernet" &>/dev/null ; then
+            CA_LIST="${CA_LIST} ${NAME}"
+        fi
+    done
+  } 1>&2
+  [ -n "${CA_LIST}" ] && { echo "${CA_LIST}" | tr ' ' '\n' | sed -E '/^$/ d' ; }
+}
+
+PrintAllInfinibandNetHosts(){
+    LOCA_IB_CA=$(GetInfinibandUpCa)
+    for CA_NAME in ${LOCA_IB_CA} ; do
+        echo "------ ibhosts -C ${CA_NAME} "
+        INFO=$( ibhosts -C ${CA_NAME} 2>/dev/null )
+        [ -n "${INFO}" ] && echo "${INFO}"
+    done
+}
+
+PrintAllInfinibandAddress(){
+    LOCA_IB_CA=$(GetInfinibandUpCa)
+    for CA_NAME in ${LOCA_IB_CA} ; do
+        echo "------ ibaddr -C ${CA_NAME} "
+        INFO=$( ibaddr -C ${CA_NAME} 2>/dev/null )
+        [ -n "${INFO}" ] && echo "${INFO}"
+    done
+}
+
+
+PrintAllInfinibandSubnet(){
+    LOCA_IB_CA=$(GetInfinibandUpCa)
+    for CA_NAME in ${LOCA_IB_CA} ; do
+        echo "------ ibdiagnet -i ${CA_NAME} "
+        INFO=$( ibdiagnet -i ${CA_NAME} 2>/dev/null )
+        [ -n "${INFO}" ] && echo "${INFO}"
+    done
+}
+
+#================================================================
+
 # todo: just support RoceV2, need to support inifiband
 GetLocalRoceDeviceIP(){
 # output:
-# device  interface IP  Mask protocol  bset_index
-# mlx5_16 net1 172.81.1.143 16 RoceV2  3
+# device  interface  IP            Mask protocol  bset_index
+# mlx5_16 net1       172.81.1.143  16   RoceV2    3
     {
         # device  ip   index
         # mlx5_16 172.81.1.143

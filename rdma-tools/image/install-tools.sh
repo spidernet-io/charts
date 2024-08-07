@@ -45,6 +45,13 @@ InstallOfed(){
   cd /etc/apt/sources.list.d/
   wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get install -y --no-install-recommends  libibverbs-dev libibumad3 libibumad-dev librdmacm-dev
+  # ibstat
+  apt-get install -y infiniband-diags=2404mlnx51-1.2404066
+  # ibdiagnet ibnetdiscover
+  apt-get install -y ibutils2
+  apt-get install -y ibdump
+  apt-get install -y ibverbs-utils=2404mlnx51-1.2404066
+  apt-get install -y rdmacm-utils=2404mlnx51-1.2404066
 
 }
 
@@ -88,19 +95,11 @@ InstallGdrCopy(){
 
 packages=(
   iproute2
-  # ibv_rc_pingpong
-  ibverbs-utils
-  # ibstat
-  infiniband-diags
-  # rping
-  rdmacm-utils
   smc-tools
   lshw
   #lspci
   pciutils
   vim
-  # ibdiagnet ibnetdiscover
-  ibutils
   iperf3
   # ping
   iputils-ping
