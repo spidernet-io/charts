@@ -62,14 +62,34 @@ PrintAllInfinibandSubnet(){
 
 #================================================================
 
-# todo: just support RoceV2, need to support inifiband
+GetUpEthernetIP(){
+# output:
+# device     IP             Mask
+# net1       172.81.1.143   16
+  {
+      RESULT=""
+      DEV_LIST=$( ls /sys/class/net | grep -v lo )
+      for DEVNAME in ${DEV_LIST} ; do
+          { ip link show ${DEVNAME} | grep "state UP" &>/dev/null ; } || continue
+          IP4_ADDR=$( ip r | grep -E "dev ${DEVNAME} .* src" |  awk '{print $NF}' | head -1 )
+          [ -n "${IP4_ADDR}" ] || continue
+          IP_MASK_LENGTH=$( ip a s ${DEVNAME} | grep -oP "(?<=inet\s)${IP4_ADDR}/[0-9]+" | awk -F'/' '{print $2}' )
+          RESULT="${RESULT}
+${DEVNAME} ${IP4_ADDR} ${IP_MASK_LENGTH}"
+      done
+  } 1>&2
+  [ -n "${RESULT}" ] && { echo "${RESULT}" | sed -E '/^$/ d' ; }
+}
+
+#======================================================
+
 GetLocalRoceDeviceIP(){
 # output:
 # device  interface  IP            Mask protocol  bset_index
 # mlx5_16 net1       172.81.1.143  16   RoceV2    3
     {
-        # device  ip   index
-        # mlx5_16 172.81.1.143
+        # device  ip             index
+        # mlx5_16 172.81.1.143   4
         RAW_INFO=$( show_gids | grep -E "[0-9]+(\.[0-9]+){3}[[:space:]]+v2" | sed -E 's?^([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+v2.*?\1 \5 \3?g' )
 
         RESULT=""
@@ -89,6 +109,30 @@ ${RDMA_DEVICE} ${INTERFACE_NAME} ${RDMA_ADDR} ${IP_MASK_LENGTH}  RoceV2 ${RDMA_I
         IFS=$OLD
     } 1>&2
     [ -n "${RESULT}" ] && echo "${RESULT}"
+}
+
+GetLocalIBDeviceIP(){
+    # output:
+    # device  interface  IP            Mask protocol      bset_index
+    # mlx5_16 net1       172.81.1.143  16   infiniband    0
+    {
+        RESULT=""
+        IB_DEV_LIST=$(GetInfinibandUpCa)
+        for CA_NAME in ${IB_DEV_LIST} ; do
+            INTERFACE_NAME=$( ibdev2netdev | grep "${CA_NAME} " | awk '{print $5}' )
+            RDMA_ADDR=$( ip r | grep -E "dev ${INTERFACE_NAME} .* src" |  awk '{print $NF}' | head -1 )
+            [ -n "${RDMA_ADDR}" ] || continue
+            IP_MASK_LENGTH=$( ip a s ${INTERFACE_NAME} | grep -oP "(?<=inet\s)${RDMA_ADDR}/[0-9]+" | awk -F'/' '{print $2}' )
+            RESULT="${RESULT}
+${CA_NAME} ${INTERFACE_NAME} ${RDMA_ADDR} ${IP_MASK_LENGTH} infiniband 0"
+        done
+    } 1>&2
+    [ -n "${RESULT}" ] && { echo "${RESULT}" | sed -E '/^$/ d' ; }
+}
+
+GetLocalRdmaDeviceIP(){
+    GetLocalRoceDeviceIP
+    GetLocalIBDeviceIP
 }
 
 CheckIPv4SameSubnet(){

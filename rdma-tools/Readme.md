@@ -59,6 +59,7 @@ resources:
     # nvidia.com/gpu: 1
 
 #securityContext:
+#  # required by gdrcopy test
 #  privileged: true
 #  capabilities:
 #    add: [ "IPC_LOCK" ]

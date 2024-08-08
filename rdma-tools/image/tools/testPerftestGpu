@@ -32,7 +32,7 @@ TestPerftestGpu(){
 
     echo "---------local 127.0.0.1 topo:"
     nvidia-smi topo -m || true
-    GetLocalRoceDeviceIP
+    GetLocalRdmaDeviceIP
     echo ""
     echo "GPU range: 0 ... $((GPU_TOTAL-1))"
     while :; do
@@ -67,7 +67,7 @@ TestPerftestGpu(){
     echo ""
     echo "---------remote ${REMOTE_IP} topo:"
     ssh ${REMOTE_IP} " nvidia-smi topo -m || true "
-    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRoceDeviceIP "
+    ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP "
     echo ""
     echo "GPU range: 0 ... $((GPU_TOTAL-1))"
     while :; do

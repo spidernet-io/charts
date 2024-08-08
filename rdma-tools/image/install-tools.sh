@@ -37,7 +37,7 @@ InstallSSH(){
   sed -i 's/#\(StrictModes \).*/\1no/g' /etc/ssh/sshd_config
 }
 
-InstallOfed(){
+InstallOfedRepo(){
   # required by perftest
   echo " install ofed lib"
   # Mellanox OFED (latest)
@@ -45,16 +45,6 @@ InstallOfed(){
   cd /etc/apt/sources.list.d/
   wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get update
-
-  apt-get install -y --no-install-recommends  libibverbs-dev libibumad3 libibumad-dev librdmacm-dev
-  # ibstat
-  apt-get install -y infiniband-diags=2404mlnx51-1.2404066
-  # ibdiagnet ibnetdiscover
-  apt-get install -y ibutils2
-  apt-get install -y ibdump
-  apt-get install -y ibverbs-utils=2404mlnx51-1.2404066
-  apt-get install -y rdmacm-utils=2404mlnx51-1.2404066
-
 }
 
 InstallEnv(){
@@ -113,10 +103,25 @@ packages=(
   hwloc
   libgomp1
   kmod
-  #ibverbs-utils
+  tcpdump
+  arping
+  ethtool
+  #--------------
+  libibverbs-dev
+  libibumad3
+  libibumad-dev
+  librdmacm-dev
   #infiniband-diags
-  #rdmacm-utils
+  # ibstat
+  infiniband-diags=2404mlnx51-1.2404066
+  #ibverbs-utils
+  # ibdiagnet ibnetdiscover
+  ibutils2
+  ibdump
   #ibutils
+  ibverbs-utils=2404mlnx51-1.2404066
+  #rdmacm-utils
+  rdmacm-utils=2404mlnx51-1.2404066
 )
 
 export DEBIAN_FRONTEND=noninteractive
@@ -127,7 +132,7 @@ apt-get install -y --no-install-recommends wget
 # to avoid interactive prompt when it is being installed
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
-InstallOfed
+InstallOfedRepo
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstallNccl
 InstallSSH

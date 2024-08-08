@@ -39,7 +39,7 @@ for ENVVAR in ${ENV_LIST} ; do
     IFS="${OLD}"
     [ -n "${ENVVAR}" ] || continue
     echo "======================== environment: ${ENVVAR} ============================="
-    echo "${ENVVAR}"
+    eval echo "${ENVVAR}"
     echo ""
 done
 
@@ -58,7 +58,7 @@ ibdev2netdev
 ibstat
 ibstatus
 ibaddr
-GetLocalRoceDeviceIP
+GetLocalRdmaDeviceIP
 PrintAllInfinibandNetHosts
 PrintAllInfinibandAddress
 PrintAllInfinibandSubnet
