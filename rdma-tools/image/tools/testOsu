@@ -20,16 +20,14 @@ HOST_LIST=$( echo -n "${POD_IP_LIST}" | tr '\n' ',' )
 (( POD_NUM > 0 )) || { echo "error, failed to detect pods" ; exit 1 ; }
 echo "HOST_LIST: ${HOST_LIST}"
 
-CMD_NAME=${CMD_NAME:-"all_reduce_perf"}
-CMD_OPTIONS=${CMD_OPTIONS:-"-b 100M -e 1G -f 2  -n 4 "}
-
-# todo: check ethernet or infiband.
-# todo: for infiniband , test sharp: -x NCCL_COLLNET_ENABLE=1  -x NCCL_ALGO=CollNet
-
+OSU_DIR="/opt/hpcx/ompi/tests/osu-micro-benchmarks-cuda"
+CMD_NAME=${CMD_NAME:-"osu_allreduce"}
+CMD_PATH="${OSU_DIR}/${CMD_NAME}"
+CMD_OPTIONS=${CMD_OPTIONS:-"-x 1000 -i 10000 -d cuda D D"}
 
 echo ""
 echo "***************************************************************************************************************"
-echo "********************  nccl-test: mpirun for ${CMD_NAME}                         ************************"
+echo "********************  osu: mpirun for ${CMD_NAME}                         ************************"
 echo "********************              hcoll: disabled                                      ************************"
 echo "***************************************************************************************************************"
 
@@ -39,17 +37,15 @@ PARAMETERS=" -np $(( POD_NUM )) -H ${HOST_SLOT}  \
    -x PATH \
    -x LD_LIBRARY_PATH \
    -mca coll_hcoll_enable 0 \
-   /usr/bin/${CMD_NAME} -g $(( GPU_NUM ))  ${CMD_OPTIONS}  "
-
-# todo: each process own one GPU
+   ${CMD_PATH}   ${CMD_OPTIONS}  "
 
 # for log
 echo "-------------------------------  run with enabling GDR and gdrCopy --------------------------"
-OPTIONS=" -d -x NCCL_DEBUG=INFO -x NCCL_DEBUG_SUBSYS=ALL \
+OPTIONS=" -d  \
           -x UCX_LOG_LEVEL=INFO -x UCX_PROTO_ENABLE=y -x UCX_PROTO_INFO=y \
           -x HCOLL_LOG_LEVEL=INFO \
-         -x NCCL_GDRCOPY_ENABLE=1 \
-         -x NCCL_NET_GDR_READ=1 \
+         -x UCX_IB_GPU_DIRECT_RDMA=yes \
+         -x UCX_TLS=all \
          ${PARAMETERS}  "
 echo ""
 echo " mpirun ${OPTIONS} "
@@ -58,10 +54,9 @@ mpirun ${OPTIONS}
 
 # for result
 echo ""
-echo "------------------------------  run with disabling GDR and gdrCopy -----------------------------"
+echo "------------------------------  run with disabling GDR  -----------------------------"
 OPTIONS="\
-         -x NCCL_GDRCOPY_ENABLE=0 \
-         -x NCCL_NET_GDR_READ=0 \
+         -x UCX_IB_GPU_DIRECT_RDMA=no \
          ${PARAMETERS}  "
 echo ""
 echo " mpirun ${OPTIONS} "
@@ -72,8 +67,7 @@ mpirun ${OPTIONS}
 echo ""
 echo "-----------------------------   run with enabling GDR and gdrCopy -------------------------------"
 OPTIONS="\
-         -x NCCL_GDRCOPY_ENABLE=1 \
-         -x NCCL_NET_GDR_READ=1 \
+         -x UCX_IB_GPU_DIRECT_RDMA=yes \
          ${PARAMETERS}  "
 echo ""
 echo " mpirun ${OPTIONS} "
