@@ -20,10 +20,6 @@ nodeSelector:
 affinity: {}
 
 resources:
-  limits:
-    cpu: 2000m
-    memory: 4000Mi
-#   spidernet.io/sriov: 1
   requests:
     cpu: 200m
     memory: 150Mi

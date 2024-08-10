@@ -23,9 +23,7 @@ echo "HOST_LIST: ${HOST_LIST}"
 CMD_NAME=${CMD_NAME:-"all_reduce_perf"}
 CMD_OPTIONS=${CMD_OPTIONS:-"-b 100M -e 1G -f 2  -n 4 "}
 
-# todo: check ethernet or infiband.
 # todo: for infiniband , test sharp: -x NCCL_COLLNET_ENABLE=1  -x NCCL_ALGO=CollNet
-
 
 echo ""
 echo "***************************************************************************************************************"

@@ -7,8 +7,9 @@
 GetInfinibandUpCa(){
   CA_LIST=""
   {
-    ALL_CA=$( ibstat -l )
-    for NAME in ${ALL_CA} ; do
+    # this excludes other CA when shared rdma system
+    ALL_LOCAL_CA=$( ibdev2netdev | awk '{print $1}' )
+    for NAME in ${ALL_LOCAL_CA} ; do
         { ibstatus ${NAME} | grep -E "state:.*ACTIVE" &>/dev/null ; } || continue
         if ibstatus ${NAME} | grep -E "link_layer:.*InfiniBand" &>/dev/null ; then
             CA_LIST="${CA_LIST} ${NAME}"
@@ -21,12 +22,26 @@ GetInfinibandUpCa(){
 GetEthernetUpCa(){
   CA_LIST=""
   {
-    ALL_CA=$( ibstat -l )
-    for NAME in ${ALL_CA} ; do
+    # this excludes other CA when shared rdma system
+    ALL_LOCAL_CA=$(  ibdev2netdev | awk '{print $1}' )
+    for NAME in ${ALL_LOCAL_CA} ; do
         { ibstatus ${NAME} | grep -E "state:.*ACTIVE" &>/dev/null ; } || continue
         if ibstatus ${NAME} | grep -E "link_layer:.*Ethernet" &>/dev/null ; then
             CA_LIST="${CA_LIST} ${NAME}"
         fi
+    done
+  } 1>&2
+  [ -n "${CA_LIST}" ] && { echo "${CA_LIST}" | tr ' ' '\n' | sed -E '/^$/ d' ; }
+}
+
+GetAllUpCa(){
+  CA_LIST=""
+  {
+    # this excludes other CA when shared rdma system
+    ALL_LOCAL_CA=$(  ibdev2netdev | awk '{print $1}' )
+    for NAME in ${ALL_LOCAL_CA} ; do
+        { ibstatus ${NAME} | grep -E "state:.*ACTIVE" &>/dev/null ; } || continue
+        CA_LIST="${CA_LIST} ${NAME}"
     done
   } 1>&2
   [ -n "${CA_LIST}" ] && { echo "${CA_LIST}" | tr ' ' '\n' | sed -E '/^$/ d' ; }
