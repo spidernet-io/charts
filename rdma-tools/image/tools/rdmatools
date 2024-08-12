@@ -86,6 +86,7 @@ GetUpEthernetIP(){
       DEV_LIST=$( ls /sys/class/net | grep -v lo )
       for DEVNAME in ${DEV_LIST} ; do
           { ip link show ${DEVNAME} | grep "state UP" &>/dev/null ; } || continue
+          ( ip a s ${DEVNAME} | grep "link/ether" ) || continue
           IP4_ADDR=$( ip r | grep -E "dev ${DEVNAME} .* src" |  awk '{print $NF}' | head -1 )
           [ -n "${IP4_ADDR}" ] || continue
           IP_MASK_LENGTH=$( ip a s ${DEVNAME} | grep -oP "(?<=inet\s)${IP4_ADDR}/[0-9]+" | awk -F'/' '{print $2}' )

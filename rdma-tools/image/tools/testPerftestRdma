@@ -20,17 +20,17 @@ else
     GPU_NUM=0
 fi
 
-REMOTE_IP=$( getOneRemoteEndpoint )
+REMOTE_ENDPOINT_IP=$( getOneRemoteEndpoint )
 echo "collecting local information ..."
 LOCAL_RDMA_INFO=$( GetLocalRdmaDeviceIP )
-echo "collecting remote ${REMOTE_IP} information ..."
-REMOTE_RDMA_INFO=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP " )
+echo "collecting remote ${REMOTE_ENDPOINT_IP} information ..."
+REMOTE_RDMA_INFO=$( ssh ${REMOTE_ENDPOINT_IP} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP " )
 #ulimit -l 2000000
 
 TestPerftestRdma(){
     echo ""
     echo "***************************************************************************************************************"
-    echo "******************** ${CMD_CLI} case: test rdma between local node and a remote node ${REMOTE_IP} ************************"
+    echo "******************** ${CMD_CLI} case: test rdma between local node and a remote node ${REMOTE_ENDPOINT_IP} ************************"
     echo "***************************************************************************************************************"
     echo ""
 
@@ -41,7 +41,7 @@ TestPerftestRdma(){
     echo "dev ifname ip mask proto index"
     echo "${LOCAL_RDMA_INFO}"
     echo ""
-    echo "remote node ${REMOTE_IP} information:"
+    echo "remote node ${REMOTE_ENDPOINT_IP} information:"
     echo "dev ifname ip mask proto index"
     echo "${REMOTE_RDMA_INFO}"
 
@@ -71,13 +71,13 @@ TestPerftestRdma(){
                     if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}" ; then
                         echo ""
                         echo "=========================================================================================================================================================="
-                        echo "================   ${CMD_CLI} ${LOCAL_PROTOCOL} case: 127.0.0.1 (${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP}) vs remote ${REMOTE_IP} (${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP})   ================="
+                        echo "================   ${CMD_CLI} ${LOCAL_PROTOCOL} case: 127.0.0.1 ( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) vs remote ${REMOTE_ENDPOINT_IP} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} )   ================="
                         echo "=========================================================================================================================================================="
-                        ssh ${REMOTE_IP}  " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
+                        ssh ${REMOTE_ENDPOINT_IP}  " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
                         (
                             OPTIONS="-d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} ${CMD_OPTIONS} "
-                            echo "server on remote ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
-                            ssh ${REMOTE_IP}  " ${CMD_CLI} ${OPTIONS} "
+                            echo "server on remote ${REMOTE_ENDPOINT_IP}: ${CMD_CLI} ${OPTIONS}"
+                            ssh ${REMOTE_ENDPOINT_IP}  " ${CMD_CLI} ${OPTIONS} "
                         )&
                         sleep 3
                         OPTIONS="-d ${LOCAL_DEVICE} -x ${LOCAL_INDEX} ${CMD_OPTIONS} ${REMOTE_IP}"

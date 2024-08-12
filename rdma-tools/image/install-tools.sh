@@ -106,6 +106,7 @@ packages=(
   tcpdump
   arping
   ethtool
+  iptables
   #--------------
   libibverbs-dev
   libibumad3
