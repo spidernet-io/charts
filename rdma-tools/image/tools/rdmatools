@@ -81,7 +81,7 @@ getUpInterfaceIP(){
 # output:
 # device     IP             Mask
 # net1       172.81.1.143   16
-  FILTER=${1-""}
+  FILTER=${1:-""}
   {
       RESULT=""
       DEV_LIST=$( ls /sys/class/net | grep -v lo )
