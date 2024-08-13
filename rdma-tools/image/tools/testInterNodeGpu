@@ -60,6 +60,7 @@ TestPerftestGpu(){
     echo ""
     LOCAL_RDMA_IP=$( GetBestRdmaDeviceIP "${LOCAL_RDMA_DEV}" )
     [ -n "${LOCAL_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${LOCAL_RDMA_DEV}" ; exit 1 ;  }
+    LOCAL_INTERFACE=$( ibdev2netdev  | grep -E "^${LOCAL_RDMA_DEV} " | awk '{print $5}'  )
 
 
     GPU_TOTAL=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetGPUAmount " ) || { echo "error, there is no GPU on remote ${REMOTE_IP}" ; exit 1 ; }
@@ -101,6 +102,11 @@ TestPerftestGpu(){
     echo "            local node 127.0.0.1 : GPU ${LOCAL_GPU_NUM}, device ${LOCAL_RDMA_DEV}"
     echo "            remote node ${REMOTE_IP} : GPU ${REMOTE_GPU_NUM}, device ${REMOTE_RDMA_DEV}"
     echo "----------------------------------------------------------------------------------------------------------"
+
+    if ! ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_RDMA_IP} &>/dev/null ; then
+        echo "error, failed to ping remote ${REMOTE_RDMA_IP} from local interface ${LOCAL_INTERFACE}"
+        exit 1
+    fi
 
     (
         PID=`ps aux | grep ib_write_bw | grep -v grep | awk '{print $2}' ` && [ -n "${PID}" ] && kill -9 ${PID}

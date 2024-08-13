@@ -27,6 +27,7 @@ RunTest(){
 }
 
 for ITEM in "gdrcopy_copylat -c " "gdrcopy_copybw" "gdrcopy_pplat" ; do
+    echo "------------------------- ${ITEM} ---------------------------------------"
     RunTest "${ITEM}"
 done
 

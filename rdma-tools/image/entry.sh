@@ -38,13 +38,14 @@ LD_LIBRARY_PATH
 PATH
 HPCX_DIR
 "
+
+echo "=================================== environment ============================================="
 OLD=$IFS
 IFS=$'\n'
 for ENVVAR in ${ENV_LIST} ; do
     IFS="${OLD}"
     [ -n "${ENVVAR}" ] || continue
-    echo "======================== environment: ${ENVVAR} ============================="
-    eval echo "${ENVVAR}"
+    printf "%s=%s\n" "${ENVVAR}" "$( eval echo \$${ENVVAR} )"
     echo ""
 done
 

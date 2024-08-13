@@ -77,16 +77,19 @@ PrintAllInfinibandSubnet(){
 
 #================================================================
 
-GetUpEthernetIP(){
+getUpInterfaceIP(){
 # output:
 # device     IP             Mask
 # net1       172.81.1.143   16
+  FILTER=${1-""}
   {
       RESULT=""
       DEV_LIST=$( ls /sys/class/net | grep -v lo )
       for DEVNAME in ${DEV_LIST} ; do
           { ip link show ${DEVNAME} | grep "state UP" &>/dev/null ; } || continue
-          ( ip a s ${DEVNAME} | grep "link/ether" &>/dev/null ; ) || continue
+          if [ -n "${FILTER}" ] ; then
+                ( ip a s ${DEVNAME} | grep "${FILTER}" &>/dev/null ; ) || continue
+          fi
           IP4_ADDR=$( ip r | grep -E "dev ${DEVNAME} .* src" |  awk '{print $NF}' | head -1 )
           [ -n "${IP4_ADDR}" ] || continue
           IP_MASK_LENGTH=$( ip a s ${DEVNAME} | grep -oP "(?<=inet\s)${IP4_ADDR}/[0-9]+" | awk -F'/' '{print $2}' )
@@ -95,6 +98,28 @@ ${DEVNAME} ${IP4_ADDR} ${IP_MASK_LENGTH}"
       done
   } 1>&2
   [ -n "${RESULT}" ] && { echo "${RESULT}" | sed -E '/^$/ d' ; }
+}
+
+
+GetUpEthernetIP(){
+# output:
+# device     IP             Mask
+# net1       172.81.1.143   16
+  getUpInterfaceIP "link/ether"
+}
+
+GetUpInfinibandIP(){
+# output:
+# device     IP             Mask
+# net1       172.81.1.143   16
+  getUpInterfaceIP "link/infiniband"
+}
+
+GetUpAllIP(){
+# output:
+# device     IP             Mask
+# net1       172.81.1.143   16
+  getUpInterfaceIP
 }
 
 #======================================================
@@ -257,8 +282,8 @@ GetBestRdmaDeviceIP(){
     {
         DEV_NAME=${1:-""}
         if CheckRdmaDevValidity ${DEV_NAME} &>/dev/null ; then
-            # get the last matched one, which is RoceV2
-            BEST_IP=$(  show_gids  | grep -E "^${DEV_NAME}[[:space:]]" | grep -o -E "[[:space:]][0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}[[:space:]]" | tail -1 | grep -o -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" )
+            INTERFACE=$( ibdev2netdev  | grep -E "^${DEV_NAME} " | awk '{print $5}' )
+            BEST_IP=$( ip r | grep -E "dev ${INTERFACE} .* src" |  awk '{print $NF}' | head -1 )
         fi
     } 1>&2
     echo "${BEST_IP}"

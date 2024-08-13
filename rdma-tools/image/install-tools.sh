@@ -95,6 +95,7 @@ packages=(
   iperf3
   # ping
   iputils-ping
+  iputils-arping
   # ssh server
   openssh-server
   curl
@@ -104,7 +105,6 @@ packages=(
   libgomp1
   kmod
   tcpdump
-  iputils-arping
   ethtool
   iptables
   #--------------
