@@ -69,4 +69,24 @@ cp  libgdrapi_*.deb  /buildGdrcopy
 cp  gdrcopy-tests_*.deb  /buildGdrcopy
 
 
+echo "--------------- install nvbandwidth -------------------"
+echo "build nvbandwidth: ${ENV_VERSION_NVBANDWIDTH}"
+apt install  -y --no-install-recommends  wget cmake
+
+rm -rf /tmp/build || true
+mkdir /tmp/build
+cd /tmp/build
+wget --no-check-certificate https://github.com/NVIDIA/nvbandwidth/archive/refs/tags/${ENV_VERSION_NVBANDWIDTH}.tar.gz
+tar xzvf *.tar.gz
+cd nvbandwidth-*/
+./debian_install.sh
+cmake .
+make
+rm -rf /buildNvbandwidth || true
+mkdir /buildNvbandwidth
+cp nvbandwidth /buildNvbandwidth/
+cd /tmp
+rm -rf /tmp/build
+
+
 

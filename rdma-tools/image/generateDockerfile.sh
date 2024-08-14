@@ -34,6 +34,9 @@ export ENV_VERSION_CUDA_SAMPLE=${ENV_VERSION_CUDA_SAMPLE:-"v12.5"}
 # 2024.7.30
 export ENV_GDRCOPY_COMMIT=${ENV_GDRCOPY_COMMIT:-"1366e20d140c5638fcaa6c72b373ac69f7ab2532"}
 
+# https://github.com/NVIDIA/nvbandwidth
+# 2024.8.14
+export ENV_VERSION_NVBANDWIDTH=${ENV_VERSION_NVBANDWIDTH:-"v0.5"}
 
 echo "------------------------ Generate Dockerfile ---------------------------"
 

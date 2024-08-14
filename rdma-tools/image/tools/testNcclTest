@@ -31,8 +31,8 @@ echo "********************  nccl-test: mpirun for ${CMD_NAME}                   
 echo "********************              hcoll: disabled                                      ************************"
 echo "***************************************************************************************************************"
 
-HOST_SLOT=$( echo -n "${HOST_LIST}" | tr ',' "\n" | sed -E 's?(.*)?\1:'1'?g' | tr '\n' ',' )
-PARAMETERS=" -np $(( POD_NUM )) -H ${HOST_SLOT}  \
+HOST_SLOT=$( echo -n "${HOST_LIST}" | tr ',' "\n" | sed -E 's?(.*)?\1:'${GPU_NUM}'?g' | tr '\n' ',' )
+PARAMETERS=" -np $(( POD_NUM * GPU_NUM )) -H ${HOST_SLOT}  \
    --bind-to none \
    -x PATH \
    -x LD_LIBRARY_PATH \

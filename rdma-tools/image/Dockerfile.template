@@ -13,6 +13,7 @@ ENV ENV_VERSION_PERFTEST=<<ENV_VERSION_PERFTEST>>
 ENV ENV_DOWNLOAD_OFED_DEB_SOURCE=<<ENV_DOWNLOAD_OFED_DEB_SOURCE>>
 ENV ENV_VERSION_CUDA_SAMPLE=<<ENV_VERSION_CUDA_SAMPLE>>
 ENV ENV_GDRCOPY_COMMIT=<<ENV_GDRCOPY_COMMIT>>
+ENV ENV_VERSION_NVBANDWIDTH=<<ENV_VERSION_NVBANDWIDTH>>
 
 # build perftest
 # Mellanox OFED (latest): required by perftest
@@ -68,6 +69,7 @@ COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
+COPY --from=buildtools /buildNvbandwidth/*     /usr/bin/
 
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools

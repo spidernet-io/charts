@@ -55,9 +55,9 @@ TestPerHost(){
     RESULT_FILE="${RESULT_DIR}/${REMOTE_HOST}"
 
     echo "" >> ${RESULT_FILE}
-    printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-40s\n" "from local ${LOCAL_ENDPOINT_IP}" "to remote ${REMOTE_HOST}" "bandwidth"  >> ${RESULT_FILE}
-    printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    printf "_____________________________________________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    printf "%-40s  %-40s  %-40s  %-40s\n" "from local ${LOCAL_ENDPOINT_IP}" "to remote ${REMOTE_HOST}" "through" "maxSpeed" >> ${RESULT_FILE}
+    printf "_____________________________________________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
 
     {
         ssh ${REMOTE_HOST}  " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
@@ -88,24 +88,25 @@ TestPerHost(){
                 if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}" || ( ((LOCAL_MASK==32)) && ((REMOTE_MASK==32))  ) ; then
 
                     echo ""
-                    echo "-------------------------------------------------------------------------------------------------"
+                    echo "_____________________________________________________________________________________________________________________________________________________________________\n"
                     echo "${CURRENT_FILENAME} case: local node (${LOCAL_INTERFACE}/${LOCAL_IP}) and the remote node ${REMOTE_HOST}(${REMOTE_INTERFACE}/${REMOTE_IP})  "
 
                      REMOTE_RUN_IP_OUTPUT_DIR="${REMOTE_RUN_OUTPUT_DIR}/${REMOTE_IP}"
 
+                     MAX_SPEED=$( ethtool ${LOCAL_INTERFACE} | grep Speed | awk '{print $2}' )
                      if ! ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_IP} &>/dev/null ; then
                           echo "error, failed to ping remote ${REMOTE_IP} from local interface ${LOCAL_INTERFACE}"
-                          printf "%-40s\t%-40s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "failure" >> ${RESULT_FILE}
+                          printf "%-40s  %-40s  %-40s  %-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "failure" "${MAX_SPEED}" >> ${RESULT_FILE}
                      else
                           OPTIONS="${CMD_OPTIONS} -t 5 -c ${REMOTE_IP}"
                           echo "clinet on local: ${CMD_CLI} ${OPTIONS}"
                           { ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR} ; } || true
                           BANDWITDH=$( cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep sender | grep -E -o "[0-9\.]+ Gbits/sec" | awk '{print $1}' ) || true
                           if [ -n "${BANDWITDH}" ] ; then
-                              printf "%-40s\t%-40s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "${BANDWITDH} Gbits/sec" >> ${RESULT_FILE}
+                              printf "%-40s  %-40s  %-40s  %-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "${BANDWITDH} Gbits/sec" "${MAX_SPEED}" >> ${RESULT_FILE}
                           else
                               echo "error, failed to test remote ${REMOTE_IP} from local interface ${LOCAL_INTERFACE}"
-                              printf "%-40s\t%-40s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "0 Gbits/sec" >> ${RESULT_FILE}
+                              printf "%-40s  %-40s  %-40s  %-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "0 Gbits/sec" "${MAX_SPEED}" >> ${RESULT_FILE}
                           fi
                      fi
                fi
@@ -113,7 +114,7 @@ TestPerHost(){
         done
     done < ${REMOTE_IP_INFOR_DIR}/${REMOTE_HOST}
 
-    printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    printf "_____________________________________________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
 
     ssh ${REMOTE_HOST}  " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
 
@@ -139,6 +140,7 @@ TestConnnect(){
     done
 
     echo ""
+    echo "total $( ls ${RESULT_DIR} | wc -l ) reports"
     echo "all result is stored in ${RESULT_DIR}"
     echo ""
 }

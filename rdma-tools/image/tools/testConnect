@@ -108,6 +108,7 @@ TestConnnect(){
     done
 
     echo ""
+    echo "total $( ls ${RESULT_DIR} | wc -l ) reports"
     echo "all result is stored in ${RESULT_DIR}"
 }
 
