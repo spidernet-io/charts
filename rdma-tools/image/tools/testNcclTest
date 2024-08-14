@@ -37,7 +37,7 @@ PARAMETERS=" -np $(( POD_NUM * GPU_NUM )) -H ${HOST_SLOT}  \
    -x PATH \
    -x LD_LIBRARY_PATH \
    -mca coll_hcoll_enable 0 \
-   /usr/bin/${CMD_NAME} -g $(( GPU_NUM ))  ${CMD_OPTIONS}  "
+   /usr/bin/${CMD_NAME} -g 1  ${CMD_OPTIONS}  "
 
 # todo: each process own one GPU
 
