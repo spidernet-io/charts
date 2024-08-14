@@ -26,6 +26,9 @@ which ibhosts &>/dev/null
 which ibping &>/dev/null
 which iperf3 &>/dev/null
 which ping &>/dev/null
+which nvbandwidth &>/dev/null
+which bandwidthTest &>/dev/null
+
 
 #ib_send_bw -h
 ib_send_bw |& grep "Did not detect devices"
