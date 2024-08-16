@@ -96,6 +96,7 @@ packages=(
   # ping
   iputils-ping
   iputils-arping
+  dnsutils
   # ssh server
   openssh-server
   curl
