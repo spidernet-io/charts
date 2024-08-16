@@ -18,6 +18,7 @@ apt-get update \
     && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add -  \
     && cd /etc/apt/sources.list.d/ && wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
 
+apt-get update
 apt-get install -y --no-install-recommends libibverbs-dev librdmacm-dev libibumad-dev libpci-dev \
       && apt-get install -y --no-install-recommends automake libtool make
 
