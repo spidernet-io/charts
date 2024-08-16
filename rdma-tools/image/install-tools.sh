@@ -45,6 +45,12 @@ InstallOfedRepo(){
   cd /etc/apt/sources.list.d/
   wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get update
+
+  for ITEM in "infiniband-diags" "rdmacm-utils" "ibverbs-utils" ; do
+      VERSION=$( apt-cache show ${ITEM} | grep Version | grep mlnx | awk '{print $2}' )
+      apt-get install -y --no-install-recommends  ${ITEM}=${VERSION}
+  done
+
 }
 
 InstallEnv(){
@@ -113,17 +119,9 @@ packages=(
   libibumad3
   libibumad-dev
   librdmacm-dev
-  #infiniband-diags
-  # ibstat
-  infiniband-diags=2404mlnx51-1.2404066
-  #ibverbs-utils
   # ibdiagnet ibnetdiscover
   ibutils2
   ibdump
-  #ibutils
-  ibverbs-utils=2404mlnx51-1.2404066
-  #rdmacm-utils
-  rdmacm-utils=2404mlnx51-1.2404066
 )
 
 export DEBIAN_FRONTEND=noninteractive
