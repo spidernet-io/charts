@@ -133,10 +133,6 @@ apt-get install -y --no-install-recommends wget
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
 InstallOfedRepo
-
-apt-cache show  rdmacm-utils
-apt-cache show  ibverbs-utils
-apt-cache show infiniband-diags
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstallNccl
 InstallSSH
