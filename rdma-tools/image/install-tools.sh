@@ -48,6 +48,7 @@ InstallOfedRepo(){
 
   for ITEM in "infiniband-diags" "rdmacm-utils" "ibverbs-utils" ; do
       VERSION=$( apt-cache show ${ITEM} | grep Version | grep mlnx | awk '{print $2}' )
+      [ -n "${VERSION}" ] || { echo "error, failed to find mlnx version "; exit 1 ; }
       apt-get install -y --no-install-recommends  ${ITEM}=${VERSION}
   done
 
