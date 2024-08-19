@@ -3,7 +3,7 @@ name: rdma-test
 image:
   registry: ghcr.io
   repository: spidernet-io/rdma-tools
-  tag: "12.5.1-898cf75813bf866d1ba576ce7484065c0fd237e8"
+  tag: "12.5.1-2fb059063ddc5a9e530f413f60f6c4bc41709649"
   #registry: ghcr.io
   #repository: coreweave/nccl-tests
   #tag: "12.4.1-cudnn-devel-ubuntu22.04-nccl2.21.5-1-85f9143"
@@ -24,19 +24,19 @@ resources:
     cpu: 200m
     memory: 150Mi
 
-extraAnnotations:
+extraAnnotations: {}
   #v1.multus-cni.io/default-network: spiderpool/calico
   #k8s.v1.cni.cncf.io/networks: |-
   #   [{"name":"gpu1-sriov","namespace":"spiderpool"},
   #    {"name":"gpu2-sriov","namespace":"spiderpool"},
   #    {"name":"gpu8-sriov","namespace":"spiderpool"}]
 
-securityContext:
+securityContext: {}
   #privileged: true
   #capabilities:
   #  add: [ "IPC_LOCK" ]
 
-command:
+command: []
   #- "/usr/bin/sleep"
   #- "infinity"
 
