@@ -97,7 +97,7 @@ spec:
           startupProbe:
             exec:
               command:
-                [sh, -c, 'ls /.driver-ready']
+                [sh, -c, 'ls ./entrypoint.sh']
             initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
             failureThreshold: 60
             successThreshold: 1
@@ -115,7 +115,7 @@ spec:
               command:
                 [sh, -c, 'lsmod | grep mlx5_core']
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            failureThreshold: 1
+            failureThreshold: 3
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
       volumes:
         - name: run-mlnx-ofed

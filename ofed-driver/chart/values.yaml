@@ -47,11 +47,11 @@ resources:
 
 startupProbe:
   # it maybe take long time the build the driver
-  initialDelaySeconds: 20
+  initialDelaySeconds: 60
   periodSeconds: 20
 
 livenessProbe:
-  initialDelaySeconds: 30
+  initialDelaySeconds: 60
   periodSeconds: 30
 
 readinessProbe:

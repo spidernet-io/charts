@@ -89,16 +89,19 @@ deploy: checkBin
 	done ; \
 	set -x ; \
     helm upgrade --install $(PROJECT) $(ROOT_DIR)/$(PROJECT)/chart --wait --debug --timeout 10m0s -n $(PROJECT) --create-namespace --kubeconfig $(KIND_KUBECONFIG) ; \
-	for ((N=0;N<=30;N++)); do \
-		if kubectl get pod -n $(PROJECT) -o wide --kubeconfig $(KIND_KUBECONFIG) | grep $(PROJECT) | sed '1 d' | grep -qv -i -E "Running|Completed"; then \
-			echo "Waiting for Pods to be ready..."; \
-			sleep 10; \
-		else \
-			echo "All Pods are in Running or Completed state."; \
-			exit 0 ; \
+	kubectl --kubeconfig=$(KIND_KUBECONFIG) wait --for=condition=Ready pods --all -n $(PROJECT) --timeout=300s ; \
+	if [ $$? -eq 0 ]; then \
+		echo "all pods are ready"; \
+		exit 0; \
+	else \
+		echo "timeout or some pods are not ready"; \
+		if [ "$(PROJECT)" = "ofed-driver" ]; then \
+			if kubectl --kubeconfig=$(KIND_KUBECONFIG) get pods -n $(PROJECT) --field-selector=status.phase=Running ; then \
+			   exit 0 ; \
+			fi ; \
 		fi ; \
-	done; \
-	exit 1 ; \
+		exit 1; \
+	fi
 
 .PHONY: checkBin
 checkBin:
