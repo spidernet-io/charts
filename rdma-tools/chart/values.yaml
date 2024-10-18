@@ -31,6 +31,9 @@ extraAnnotations: {}
   #    {"name":"gpu2-sriov","namespace":"spiderpool"},
   #    {"name":"gpu8-sriov","namespace":"spiderpool"}]
 
+extraLabels: {}
+  # network.spidernet.io: ai-apps
+
 securityContext: {}
   #privileged: true
   #capabilities:

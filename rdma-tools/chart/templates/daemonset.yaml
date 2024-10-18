@@ -15,6 +15,9 @@ spec:
     metadata:
       labels:
         app: {{ include "project.name" . | trunc 63 | trimSuffix "-" | quote }}
+      {{- if .Values.extraLabels }}
+      {{- include "tplvalues.render" ( dict "value" .Values.extraLabels "context" $ ) | nindent 8 }}
+      {{- end }}
       {{- if .Values.extraAnnotations }}
       annotations:
         {{- include "tplvalues.render" ( dict "value" .Values.extraAnnotations "context" $ ) | nindent 8 }}
