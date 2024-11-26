@@ -3,7 +3,7 @@ entries:
   ofed-driver:
   - apiVersion: v2
     appVersion: 24.04.0
-    created: "2024-10-14T12:21:01.949591105Z"
+    created: "2024-11-26T07:02:02.725309246Z"
     description: ofed driver
     digest: ec27fa341545418902d90773e574a6556d753cacbc0d97b7242212081d8769d7
     home: https://spidernet-io.github.io/charts
@@ -21,8 +21,25 @@ entries:
     version: 24.04.0
   rdma-tools:
   - apiVersion: v2
+    appVersion: 12.5.3
+    created: "2024-11-26T07:02:02.727600444Z"
+    description: rdma test
+    digest: 75df20ad091bf6b2f7f92ea6c6948dfc33756a480654f86918e8b85b9855982f
+    home: https://spidernet-io.github.io/charts
+    keywords:
+    - rdma
+    - networking
+    kubeVersion: '>= 1.16.0-0'
+    name: rdma-tools
+    sources:
+    - https://spidernet-io.github.io/charts
+    type: application
+    urls:
+    - https://spidernet-io.github.io/charts/charts/rdma-tools-12.5.3.tgz
+    version: 12.5.3
+  - apiVersion: v2
     appVersion: 12.5.2
-    created: "2024-10-14T12:21:01.950690333Z"
+    created: "2024-11-26T07:02:02.727289092Z"
     description: rdma test
     digest: 0febbb2ac265802963d867a8452ea08b668a53080445b19f8c52f5f6a4adfd3e
     home: https://spidernet-io.github.io/charts
@@ -39,7 +56,7 @@ entries:
     version: 12.5.2
   - apiVersion: v2
     appVersion: 12.5.1
-    created: "2024-10-14T12:21:01.95039888Z"
+    created: "2024-11-26T07:02:02.726686119Z"
     description: rdma test
     digest: ab1a0a1981822d076e1df5c1b9325b7c930aa68378db830c8b5d9209da12ced1
     home: https://spidernet-io.github.io/charts
@@ -56,7 +73,7 @@ entries:
     version: 12.5.1
   - apiVersion: v2
     appVersion: 12.5.0
-    created: "2024-10-14T12:21:01.9501146Z"
+    created: "2024-11-26T07:02:02.725942439Z"
     description: rdma test
     digest: 5ac75c5536a2fa0cbd39d2c6a55097ce77f7617cfd3bbebe08c80e0cd2527d2f
     home: https://spidernet-io.github.io/charts
@@ -73,7 +90,7 @@ entries:
     version: 12.5.0
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2024-10-14T12:21:01.949864134Z"
+    created: "2024-11-26T07:02:02.725660292Z"
     description: rdma test
     digest: dfa84c45205c7b6d124403d0d74f2c3f7df79e94721a7a559229b0dc6e105d31
     home: https://spidernet-io.github.io/charts
@@ -88,4 +105,4 @@ entries:
     urls:
     - https://spidernet-io.github.io/charts/charts/rdma-tools-0.1.0.tgz
     version: 0.1.0
-generated: "2024-10-14T12:21:01.949075785Z"
+generated: "2024-11-26T07:02:02.723642523Z"
