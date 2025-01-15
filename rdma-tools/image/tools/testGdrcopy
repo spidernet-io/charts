@@ -8,25 +8,36 @@
 set -o errexit
 set -o nounset
 
-source /usr/sbin/rdmatools
-GPU_NUM=$( GetGPUAmount )
+COMMAND_LIST=${COMMAND_LIST:-"gdrcopy_sanity gdrcopy_copylat gdrcopy_copybw gdrcopy_pplat"}
+for ITEM in ${COMMAND_LIST}; do
+  if ! which ${ITEM} &>/dev/null; then
+    echo "error, ${ITEM} tools not found"
+    exit 1
+  fi
+done
 
-(( GPU_NUM > 0 )) || { echo "error, there is no GPU detected" ; exit 1 ; }
+source /usr/sbin/rdmatools
+GPU_NUM=$(GetGPUAmount)
+
+((GPU_NUM > 0)) || {
+  echo "error, there is no GPU detected"
+  exit 1
+}
 echo "there is ${GPU_NUM} GPU locally"
 
-RunTest(){
+RunTest() {
   CMD=${1:-""}
-  for (( N=0 ; N < GPU_NUM; N++)); do
-        echo ""
-        echo "***************************************************************************************************************"
-        echo "********************                     ${CMD}  on GPU ${N}            ****************************************"
-        echo "***************************************************************************************************************"
-        eval ${CMD} -d ${N} || exit 1
-        echo ""
+  for ((N = 0; N < GPU_NUM; N++)); do
+    echo ""
+    echo "***************************************************************************************************************"
+    echo "********************                     ${CMD}  on GPU ${N}            ****************************************"
+    echo "***************************************************************************************************************"
+    eval ${CMD} -d ${N} || exit 1
+    echo ""
   done
 }
 
-for ITEM in "gdrcopy_sanity" "gdrcopy_copylat -c " "gdrcopy_copybw" "gdrcopy_pplat" ; do
-    echo "------------------------- ${ITEM} ---------------------------------------"
-    RunTest "${ITEM}"
+for ITEM in "gdrcopy_sanity" "gdrcopy_copylat -c " "gdrcopy_copybw" "gdrcopy_pplat"; do
+  echo "------------------------- ${ITEM} ---------------------------------------"
+  RunTest "${ITEM}"
 done

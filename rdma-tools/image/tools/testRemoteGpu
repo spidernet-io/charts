@@ -6,20 +6,24 @@
 # ib_write_bw with GDR : test GDR: local node against a remote node , with rdma device in the same subnet
 # todo: support infiniband
 
-
 #set -x
 #set -o pipefail
 set -o errexit
 set -o nounset
 
+if ! which ib_write_bw &>/dev/null; then
+    echo "error, ib_write_bw tools not found"
+    exit 1
+fi
+
 REMOTE_IP=${1:-""}
 
 source /usr/sbin/rdmatools
-[ -n "${REMOTE_IP}" ] || REMOTE_IP=$( getOneRemoteEndpoint )
+[ -n "${REMOTE_IP}" ] || REMOTE_IP=$(getOneRemoteEndpoint)
 
 CMD_OPTIONS=${CMD_OPTIONS:-"-a -F --report_gbits -q 1"}
 
-TestPerftestGpu(){
+TestPerftestGpu() {
 
     echo ""
     echo "***************************************************************************************************************"
@@ -27,22 +31,28 @@ TestPerftestGpu(){
     echo "***************************************************************************************************************"
     echo ""
 
-    GPU_TOTAL=$( GetGPUAmount ) || { echo "error, there is no GPU locally" ; exit 1 ; }
-    RDMA_DEV_LIST=$( GetRdmaDevList ) || { echo "error, there is RDMA device locally" ; exit 1 ; }
+    GPU_TOTAL=$(GetGPUAmount) || {
+        echo "error, there is no GPU locally"
+        exit 1
+    }
+    RDMA_DEV_LIST=$(GetRdmaDevList) || {
+        echo "error, there is RDMA device locally"
+        exit 1
+    }
 
     echo "---------local 127.0.0.1 topo:"
     nvidia-smi topo -m || true
     GetLocalRdmaDeviceIP
     echo ""
-    echo "GPU range: 0 ... $((GPU_TOTAL-1))"
+    echo "GPU range: 0 ... $((GPU_TOTAL - 1))"
     while :; do
-      echo ""
-      echo -n "Please input the expected GPU number of local node: "
-      read LOCAL_GPU_NUM
-      if [ -n "${LOCAL_GPU_NUM}" ] ; then
-         CheckGpuIdValidity "${LOCAL_GPU_NUM}" || continue
-         break
-      fi
+        echo ""
+        echo -n "Please input the expected GPU number of local node: "
+        read LOCAL_GPU_NUM
+        if [ -n "${LOCAL_GPU_NUM}" ]; then
+            CheckGpuIdValidity "${LOCAL_GPU_NUM}" || continue
+            break
+        fi
     done
     echo ""
     show_gids
@@ -52,30 +62,38 @@ TestPerftestGpu(){
         echo ""
         echo -n "Please input the expected RDMA device of local node: "
         read LOCAL_RDMA_DEV
-        if [ -n "${LOCAL_RDMA_DEV}" ] ; then
+        if [ -n "${LOCAL_RDMA_DEV}" ]; then
             CheckRdmaDevValidity "${LOCAL_RDMA_DEV}" || continue
             break
         fi
     done
     echo ""
-    LOCAL_RDMA_IP=$( GetBestRdmaDeviceIP "${LOCAL_RDMA_DEV}" )
-    [ -n "${LOCAL_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${LOCAL_RDMA_DEV}" ; exit 1 ;  }
-    LOCAL_INTERFACE=$( ibdev2netdev  | grep -E "^${LOCAL_RDMA_DEV} " | awk '{print $5}'  )
+    LOCAL_RDMA_IP=$(GetBestRdmaDeviceIP "${LOCAL_RDMA_DEV}")
+    [ -n "${LOCAL_RDMA_IP}" ] || {
+        echo "error, failed to find any IP on device ${LOCAL_RDMA_DEV}"
+        exit 1
+    }
+    LOCAL_INTERFACE=$(ibdev2netdev | grep -E "^${LOCAL_RDMA_DEV} " | awk '{print $5}')
 
-
-    GPU_TOTAL=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetGPUAmount " ) || { echo "error, there is no GPU on remote ${REMOTE_IP}" ; exit 1 ; }
-    RDMA_DEV_LIST=$( ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetRdmaDevList " ) || { echo "error, there is RDMA device on remote ${REMOTE_IP}" ; exit 1 ; }
+    GPU_TOTAL=$(ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetGPUAmount ") || {
+        echo "error, there is no GPU on remote ${REMOTE_IP}"
+        exit 1
+    }
+    RDMA_DEV_LIST=$(ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetRdmaDevList ") || {
+        echo "error, there is RDMA device on remote ${REMOTE_IP}"
+        exit 1
+    }
     echo ""
     echo "---------remote ${REMOTE_IP} topo:"
     ssh ${REMOTE_IP} " nvidia-smi topo -m || true "
     ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP "
     echo ""
-    echo "GPU range: 0 ... $((GPU_TOTAL-1))"
+    echo "GPU range: 0 ... $((GPU_TOTAL - 1))"
     while :; do
         echo ""
         echo -n "Please input the expected GPU number of remote node ${REMOTE_IP}: "
         read REMOTE_GPU_NUM
-        if [ -n "${REMOTE_GPU_NUM}" ] ; then
+        if [ -n "${REMOTE_GPU_NUM}" ]; then
             ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckGpuIdValidity ${REMOTE_GPU_NUM}  " || continue
             break
         fi
@@ -88,13 +106,16 @@ TestPerftestGpu(){
         echo ""
         echo -n "Please input the expected RDMA device of remote node ${REMOTE_IP}: "
         read REMOTE_RDMA_DEV
-        if [ -n "${REMOTE_RDMA_DEV}" ] ; then
+        if [ -n "${REMOTE_RDMA_DEV}" ]; then
             ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && CheckRdmaDevValidity ${REMOTE_RDMA_DEV}  " || continue
             break
         fi
     done
-    REMOTE_RDMA_IP=$(  ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetBestRdmaDeviceIP ${REMOTE_RDMA_DEV}  " )
-    [ -n "${REMOTE_RDMA_IP}" ] || { echo "error, failed to find any IP on device ${REMOTE_RDMA_IP}" ; exit 1 ;  }
+    REMOTE_RDMA_IP=$(ssh ${REMOTE_IP} " source /usr/sbin/rdmatools && GetBestRdmaDeviceIP ${REMOTE_RDMA_DEV}  ")
+    [ -n "${REMOTE_RDMA_IP}" ] || {
+        echo "error, failed to find any IP on device ${REMOTE_RDMA_IP}"
+        exit 1
+    }
 
     echo ""
     echo "---------------------------------------------------------------------------------------------------------"
@@ -103,21 +124,21 @@ TestPerftestGpu(){
     echo "            remote node ${REMOTE_IP} : GPU ${REMOTE_GPU_NUM}, device ${REMOTE_RDMA_DEV}"
     echo "----------------------------------------------------------------------------------------------------------"
 
-    if ! ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_RDMA_IP} &>/dev/null ; then
+    if ! ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_RDMA_IP} &>/dev/null; then
         echo "error, failed to ping remote ${REMOTE_RDMA_IP} from local interface ${LOCAL_INTERFACE}"
         exit 1
     fi
 
     (
-        PID=`ps aux | grep ib_write_bw | grep -v grep | awk '{print $2}' ` && [ -n "${PID}" ] && kill -9 ${PID}
+        PID=$(ps aux | grep ib_write_bw | grep -v grep | awk '{print $2}') && [ -n "${PID}" ] && kill -9 ${PID}
         echo "server on local: ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} ${CMD_OPTIONS}  "
         ib_write_bw -d ${LOCAL_RDMA_DEV} --use_cuda=${LOCAL_GPU_NUM} ${CMD_OPTIONS}
-    )&
+    ) &
     sleep 3
 
     echo "clinet on remote ${REMOTE_IP}: ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS}  ${LOCAL_RDMA_IP} "
     #ssh ${REMOTE_IP}  " ulimit -l 2000000 && ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS} ${LOCAL_RDMA_IP} "
-    ssh ${REMOTE_IP}  " ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS} ${LOCAL_RDMA_IP} "
+    ssh ${REMOTE_IP} " ib_write_bw -d ${REMOTE_RDMA_DEV} --use_cuda=${REMOTE_GPU_NUM} ${CMD_OPTIONS} ${LOCAL_RDMA_IP} "
 
 }
 TestPerftestGpu

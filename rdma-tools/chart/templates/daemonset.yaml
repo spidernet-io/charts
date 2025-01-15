@@ -103,13 +103,13 @@ spec:
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm
-            {{- if .Values.extraVolumes }}
-            {{- include "tplvalues.render" ( dict "value" .Values.extraVolumes "context" $ ) | nindent 12 }}
+            {{- if .Values.extraVolumeMounts }}
+            {{- include "tplvalues.render" ( dict "value" .Values.extraVolumeMounts "context" $ ) | nindent 12 }}
             {{- end }}
       volumes:
         - emptyDir:
             medium: Memory
           name: dshm
-      {{- if .Values.extraVolumeMounts }}
-      {{- include "tplvalues.render" ( dict "value" .Values.extraVolumeMounts "context" $ ) | nindent 6 }}
-      {{- end }}
+        {{- if .Values.extraVolumes }}
+        {{- include "tplvalues.render" ( dict "value" .Values.extraVolumes "context" $ ) | nindent 8 }}
+        {{- end }}

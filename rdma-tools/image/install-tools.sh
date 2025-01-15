@@ -9,7 +9,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-InstallNccl(){
+InstallNccl() {
   echo " install nccl"
 
   cd /tmp
@@ -21,23 +21,23 @@ InstallNccl(){
   apt install --allow-change-held-packages -y libnccl2 libnccl-dev
   rm * -rf || true
 
-  echo "ulimit -l 2000000" >> /etc/bash.bashrc
-  echo "* soft memlock unlimited" >> /etc/security/limits.conf
-  echo "* hard memlock unlimited" >> /etc/security/limits.conf
+  echo "ulimit -l 2000000" >>/etc/bash.bashrc
+  echo "* soft memlock unlimited" >>/etc/security/limits.conf
+  echo "* hard memlock unlimited" >>/etc/security/limits.conf
 }
 
-InstallSSH(){
+InstallSSH() {
   # for mpirun
   mkdir /root/.ssh
   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-  cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+  cat ~/.ssh/id_ed25519.pub >>~/.ssh/authorized_keys
 
   sed -i 's/[ #]\(.*StrictHostKeyChecking \).*/ \1no/g' /etc/ssh/ssh_config
-  echo "    UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config
+  echo "    UserKnownHostsFile /dev/null" >>/etc/ssh/ssh_config
   sed -i 's/#\(StrictModes \).*/\1no/g' /etc/ssh/sshd_config
 }
 
-InstallOfedRepo(){
+InstallOfedRepo() {
   # required by perftest
   echo " install ofed lib"
   # Mellanox OFED (latest)
@@ -46,51 +46,52 @@ InstallOfedRepo(){
   wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get update
 
-  for ITEM in "infiniband-diags" "rdmacm-utils" "ibverbs-utils" ; do
-      VERSION=$( apt-cache show ${ITEM} | grep Version | grep mlnx | awk '{print $2}' )
-      [ -n "${VERSION}" ] || { echo "error, failed to find mlnx version "; exit 1 ; }
-      apt-get install -y --no-install-recommends  ${ITEM}=${VERSION}
+  for ITEM in "infiniband-diags" "rdmacm-utils" "ibverbs-utils"; do
+    VERSION=$(apt-cache show ${ITEM} | grep Version | grep mlnx | awk '{print $2}')
+    [ -n "${VERSION}" ] || {
+      echo "error, failed to find mlnx version "
+      exit 1
+    }
+    apt-get install -y --no-install-recommends ${ITEM}=${VERSION}
   done
 
 }
 
-InstallEnv(){
+InstallEnv() {
   echo " install enviroment for hpc-x"
-    chmod +x /printpaths.sh
-    # HPC-X Environment variables
-    source /opt/hpcx/hpcx-init.sh
-    hpcx_load
+  chmod +x /printpaths.sh
+  # HPC-X Environment variables
+  source /opt/hpcx/hpcx-init.sh
+  hpcx_load
 
-    # test
-    /printpaths.sh ENV
+  # test
+  /printpaths.sh ENV
 
-    # Preserve environment variables in new login shells
-    alias install='install --owner=0 --group=0'
-    /printpaths.sh export \
-      | install --mode=644 /dev/stdin /etc/profile.d/hpcx-env.sh
+  # Preserve environment variables in new login shells
+  alias install='install --owner=0 --group=0'
+  /printpaths.sh export |
+    install --mode=644 /dev/stdin /etc/profile.d/hpcx-env.sh
 
-    # Preserve environment variables (except *PATH*) when sudoing
-    install -d --mode=0755 /etc/sudoers.d
-    /printpaths.sh \
-      | sed -E -e '{ s:^([^=]+)=.*$:\1:g ;  /PATH/d ;  s:^.*$:Defaults env_keep += "\0":g  }' \
-      | install --mode=440 /dev/stdin /etc/sudoers.d/hpcx-env
+  # Preserve environment variables (except *PATH*) when sudoing
+  install -d --mode=0755 /etc/sudoers.d
+  /printpaths.sh |
+    sed -E -e '{ s:^([^=]+)=.*$:\1:g ;  /PATH/d ;  s:^.*$:Defaults env_keep += "\0":g  }' |
+    install --mode=440 /dev/stdin /etc/sudoers.d/hpcx-env
 
-    # Register shared libraries with ld regardless of LD_LIBRARY_PATH
-    echo $LD_LIBRARY_PATH | tr ':' '\n' \
-      | install --mode=644 /dev/stdin /etc/ld.so.conf.d/hpcx.conf
+  # Register shared libraries with ld regardless of LD_LIBRARY_PATH
+  echo $LD_LIBRARY_PATH | tr ':' '\n' |
+    install --mode=644 /dev/stdin /etc/ld.so.conf.d/hpcx.conf
 
-    rm /printpaths.sh
-    ldconfig
+  rm /printpaths.sh
+  ldconfig
 }
 
-
-InstallGdrCopy(){
-    echo "install gdrcopy library"
-    cd /buildGdrcopy
-    dpkg -i *.deb
-    rm -rf  /buildGdrcopy
+InstallGdrCopy() {
+  echo "install gdrcopy library"
+  cd /buildGdrcopy
+  dpkg -i *.deb
+  rm -rf /buildGdrcopy
 }
-
 
 packages=(
   iproute2
@@ -123,6 +124,9 @@ packages=(
   # ibdiagnet ibnetdiscover
   ibutils2
   ibdump
+  libelf1
+  libltdl7
+  libnuma1
 )
 
 export DEBIAN_FRONTEND=noninteractive
