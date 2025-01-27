@@ -1,7 +1,7 @@
-name: Chart Rdma Tools
+name: Release OFED
 
 env:
-  CHART_PATH: rdma-tools/chart
+  CHART_PATH: ofed-driver/chart
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
         default: main
   push:
     tags:
-      - rdma-tools-v[0-9]+.[0-9]+.[0-9]+
+      - ofed-driver-v[0-9]+.[0-9]+.[0-9]+
 
 permissions: write-all
 

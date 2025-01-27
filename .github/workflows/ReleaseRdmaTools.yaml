@@ -1,0 +1,83 @@
+name: Release Rdma Tools
+
+env:
+  CHART_PATH: rdma-tools/chart
+  DOCKERFILE_PATH: rdma-tools/image
+  IMAGE_NAME: rdma-tools
+  BUILD_PLATFORM: linux/amd64
+  GEN_DOCKERFILE_SCRIPT: rdma-tools/image/generateDockerfile.sh
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'compile the chart based on the sha or branch of code'
+        required: true
+        default: main
+  push:
+    tags:
+      - rdma-tools-v[0-9]+.[0-9]+.[0-9]+
+
+permissions: write-all
+
+jobs:
+  get_info:
+    runs-on: ubuntu-latest
+    outputs:
+      chart_path: ${{ env.chart_path }}
+      code_sha: ${{ env.code_sha }}
+    steps:
+      - name: Get information
+        id: get_original_ref
+        run: |
+          echo '${{ toJSON(github) }}'
+          echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
+          echo "generateDockerfileScript=${{ env.GEN_DOCKERFILE_SCRIPT }}" >> $GITHUB_ENV
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            echo "call by workflow_dispatch"
+            echo "code_sha=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
+            echo "chart_path=${{ env.CHART_PATH }}" >> $GITHUB_ENV
+          elif ${{ github.event_name == 'push' }} ; then
+            echo "call by push tag"
+            echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
+            echo "chart_path=${{ env.CHART_PATH }}" >> $GITHUB_ENV
+          else
+            exit 1
+          fi
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.code_sha }}
+
+      - name: Generate Dockerfile
+        run: |
+          set -x
+          cd ${{ env.DOCKERFILE_PATH }}
+          chmod +x ./generateDockerfile.sh
+          source ./generateDockerfile.sh
+          image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
+          [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
+          echo "image_tag=${ENV_BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
+
+  call-image-workflow:
+    needs: [get_info]
+    uses: ./.github/workflows/callBuildImage.yaml
+    with:
+      code_sha: ${{ needs.get_info.outputs.code_sha }}
+      push_image: true
+      image_name: ${{ env.IMAGE_NAME }}
+      dockerfile_dirctory: ${{ env.DOCKERFILE_PATH }}
+      build_platform: ${{ env.BUILD_PLATFORM }}
+      upload_artifact: false
+      image_tag: ${{ needs.get_info.outputs.image_tag }}
+      generateDockerfileScript: ${{ needs.get_info.outputs.generateDockerfileScript }}
+    secrets: inherit
+
+  call-chart-workflow:
+    needs: [get_info,call-image-workflow]
+    uses: ./.github/workflows/callBuildChart.yaml
+    with:
+      code_sha: ${{ needs.get_info.outputs.code_sha }}
+      chart_path: ${{ needs.get_info.outputs.chart_path }}
+    secrets: inherit
