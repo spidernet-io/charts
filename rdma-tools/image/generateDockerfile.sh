@@ -17,6 +17,10 @@ export ENV_VERSION_PERFTEST=${ENV_VERSION_PERFTEST:-"24.04.0-0.41"}
 # https://github.com/NVIDIA/nccl-tests/tags
 export ENV_VERSION_NCCLTEST=${ENV_VERSION_NCCLTEST:-"v2.13.10"}
 
+# https://www.tcpdump.org/release
+export ENV_VERSION_LIBCAP=${ENV_VERSION_LIBCAP:-"libpcap-1.10.5"}
+export ENV_VERSION_TCPDUMP=${ENV_VERSION_TCPDUMP:-"tcpdump-4.99.5"}
+
 # https://developer.nvidia.com/networking/hpc-x
 export ENV_VERSION_HPCX=${ENV_VERSION_HPCX:-"v2.19"}
 export ENV_DOWNLOAD_HPCX_URL="https://content.mellanox.com/hpc/hpc-x/${ENV_VERSION_HPCX}/hpcx-${ENV_VERSION_HPCX}-gcc-mlnx_ofed-${ENV_BASEIMAGE_OS_VERISON}-cuda12-x86_64.tbz"

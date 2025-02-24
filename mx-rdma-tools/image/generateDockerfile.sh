@@ -10,6 +10,10 @@ export ENV_LD_LIBRARY_PATH="/usr/local/cuda-12.5/compat:/usr/lib/x86_64-linux-gn
 # https://github.com/linux-rdma/perftest
 export ENV_VERSION_PERFTEST=${ENV_VERSION_PERFTEST:-"24.04.0-0.41"}
 
+# https://www.tcpdump.org/release
+export ENV_VERSION_LIBCAP=${ENV_VERSION_LIBCAP:-"libpcap-1.10.5"}
+export ENV_VERSION_TCPDUMP=${ENV_VERSION_TCPDUMP:-"tcpdump-4.99.5"}
+
 # https://github.com/NVIDIA/nccl-tests/tags
 export ENV_VERSION_NCCLTEST=${ENV_VERSION_NCCLTEST:-"v2.13.10"}
 
