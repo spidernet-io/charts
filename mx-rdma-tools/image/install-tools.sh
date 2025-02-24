@@ -62,7 +62,6 @@ packages=(
   hwloc
   libgomp1
   kmod
-  tcpdump
   ethtool
   iptables
   #--------------

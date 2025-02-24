@@ -22,6 +22,12 @@ ARG DEBIAN_FRONTEND=noninteractive
 COPY /install-perftest.sh /install-perftest.sh
 RUN chmod +x /install-perftest.sh && /install-perftest.sh
 
+# build tcpdump
+ENV ENV_VERSION_LIBCAP=<<ENV_VERSION_LIBCAP>>
+ENV ENV_VERSION_TCPDUMP=<<ENV_VERSION_TCPDUMP>>
+COPY /install-tcpdump.sh /install-tcpdump.sh
+RUN chmod +x /install-tcpdump.sh && /install-tcpdump.sh
+
 # install hpcx and nccltest
 ENV ENV_DOWNLOAD_HPCX_URL=<<ENV_DOWNLOAD_HPCX_URL>>
 ENV ENV_VERSION_NCCLTEST=<<ENV_VERSION_NCCLTEST>>
