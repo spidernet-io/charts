@@ -3,7 +3,7 @@ entries:
   mx-rdma-tools:
   - apiVersion: v2
     appVersion: 0.0.1
-    created: "2025-02-20T05:37:13.381653201Z"
+    created: "2025-02-28T05:36:08.518418206Z"
     description: rdma test
     digest: ba92684a9e80683a14fee6fbd864b257d906861e01a501b5b0269ee7106c9980
     home: https://spidernet-io.github.io/charts
@@ -22,7 +22,7 @@ entries:
   ofed-driver:
   - apiVersion: v2
     appVersion: 24.04.0
-    created: "2025-02-20T05:37:13.381976585Z"
+    created: "2025-02-28T05:36:08.518773738Z"
     description: ofed driver
     digest: ec27fa341545418902d90773e574a6556d753cacbc0d97b7242212081d8769d7
     home: https://spidernet-io.github.io/charts
@@ -40,8 +40,25 @@ entries:
     version: 24.04.0
   rdma-tools:
   - apiVersion: v2
+    appVersion: 12.5.4
+    created: "2025-02-28T05:36:08.521423235Z"
+    description: rdma test
+    digest: e3b1520c59c1964b7dfd29c5eadfbb284bf18a306fc60ea711b433e81bd3e3a1
+    home: https://spidernet-io.github.io/charts
+    keywords:
+    - rdma
+    - networking
+    kubeVersion: '>= 1.16.0-0'
+    name: rdma-tools
+    sources:
+    - https://spidernet-io.github.io/charts
+    type: application
+    urls:
+    - https://spidernet-io.github.io/charts/charts/rdma-tools-12.5.4.tgz
+    version: 12.5.4
+  - apiVersion: v2
     appVersion: 12.5.3
-    created: "2025-02-20T05:37:13.383401846Z"
+    created: "2025-02-28T05:36:08.521114971Z"
     description: rdma test
     digest: 12d9791894af5b136d8b973e8f881e41259038646654c33d7dd0958d7d87724e
     home: https://spidernet-io.github.io/charts
@@ -58,7 +75,7 @@ entries:
     version: 12.5.3
   - apiVersion: v2
     appVersion: 12.5.2
-    created: "2025-02-20T05:37:13.383130479Z"
+    created: "2025-02-28T05:36:08.52080326Z"
     description: rdma test
     digest: 0febbb2ac265802963d867a8452ea08b668a53080445b19f8c52f5f6a4adfd3e
     home: https://spidernet-io.github.io/charts
@@ -75,7 +92,7 @@ entries:
     version: 12.5.2
   - apiVersion: v2
     appVersion: 12.5.1
-    created: "2025-02-20T05:37:13.382860244Z"
+    created: "2025-02-28T05:36:08.520190476Z"
     description: rdma test
     digest: ab1a0a1981822d076e1df5c1b9325b7c930aa68378db830c8b5d9209da12ced1
     home: https://spidernet-io.github.io/charts
@@ -92,7 +109,7 @@ entries:
     version: 12.5.1
   - apiVersion: v2
     appVersion: 12.5.0
-    created: "2025-02-20T05:37:13.382577246Z"
+    created: "2025-02-28T05:36:08.519412026Z"
     description: rdma test
     digest: 5ac75c5536a2fa0cbd39d2c6a55097ce77f7617cfd3bbebe08c80e0cd2527d2f
     home: https://spidernet-io.github.io/charts
@@ -109,7 +126,7 @@ entries:
     version: 12.5.0
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2025-02-20T05:37:13.382298726Z"
+    created: "2025-02-28T05:36:08.519013344Z"
     description: rdma test
     digest: dfa84c45205c7b6d124403d0d74f2c3f7df79e94721a7a559229b0dc6e105d31
     home: https://spidernet-io.github.io/charts
@@ -124,4 +141,4 @@ entries:
     urls:
     - https://spidernet-io.github.io/charts/charts/rdma-tools-0.1.0.tgz
     version: 0.1.0
-generated: "2025-02-20T05:37:13.381172383Z"
+generated: "2025-02-28T05:36:08.517991741Z"
