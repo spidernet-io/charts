@@ -68,6 +68,7 @@ echo "finished collectiong information"
 
 TestPerHost() {
     REMOTE_HOST="${1}"
+    REMOTE_NODE_NAME=$(ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " echo \${ENV_LOCAL_NODE_NAME} ")
 
     [ -f "${REMOTE_INFOR_DIR}/${REMOTE_HOST}" ] || {
         echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_HOST} "
@@ -77,7 +78,7 @@ TestPerHost() {
 
     echo "" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "from local ${LOCAL_ENDPOINT_IP}" "to remote ${REMOTE_HOST}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" >>${RESULT_FILE}
+    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "from ${LOCAL_ENDPOINT_IP} ${LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
     REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_HOST}"
@@ -175,7 +176,8 @@ TestRdma() {
 
 #-------------------------
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
-BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F "}
+#BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F "}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --report_gbits -F "}
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 TestRdma
