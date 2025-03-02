@@ -17,6 +17,7 @@ CURRENT_FILENAME=$(basename $0)
 ENV_SSH_PORT=${ENV_SSH_PORT:-"2022"}
 
 source /usr/sbin/rdmatools
+source getAllEndpoints
 
 POD_IP_LIST=${1:-""}
 [ -n "${POD_IP_LIST}" ] || { POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true; }
@@ -39,13 +40,14 @@ LOCAL_IP_INFO=$(GetUpAllIP)
 LOCAL_INT=$( ip r | grep default | head -1 | grep -oE "dev [^[:space:]]+"  | awk '{print $2}' )
 LOCAL_ENDPOINT_IP=$( ip -4 addr show ${LOCAL_INT} | grep -oP '(?<=inet\s)[0-9]+(\.[0-9]+){3}'	 )
 
+
 echo "collecting remote information ..."
 EXPECT_NUM=0
 for ADDR in ${POD_IP_LIST}; do
     ((EXPECT_NUM += 1))
     (
         echo "collecting information from ${ADDR}"
-        REMOTE_IP_INFO=$(ssh -p ${ENV_SSH_PORT} ${ADDR} " source /usr/sbin/rdmatools && GetUpAllIP ")
+        REMOTE_IP_INFO=$(ssh  -p ${ENV_SSH_PORT} ${ADDR} " source /usr/sbin/rdmatools && GetUpAllIP ")
         if [ -n "${REMOTE_IP_INFO}" ]; then
             echo "${REMOTE_IP_INFO}" >${REMOTE_IP_INFOR_DIR}/${ADDR}
         else
@@ -63,6 +65,7 @@ echo "finished collectiong information"
 
 TestPerHost() {
     REMOTE_HOST="${1}"
+    REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
 
     [ -f "${REMOTE_IP_INFOR_DIR}/${REMOTE_HOST}" ] || {
         echo "error, failed to find ${REMOTE_IP_INFOR_DIR}/${REMOTE_HOST} "
@@ -72,14 +75,14 @@ TestPerHost() {
 
     echo "" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
-    printf "%-40s  %-40s  %-40s  %-40s\n" "from local ${LOCAL_ENDPOINT_IP}" "to remote ${REMOTE_HOST}" "through" "maxSpeed" >>${RESULT_FILE}
+    printf "%-40s  %-40s  %-40s  %-40s\n" "from ${LOCAL_ENDPOINT_IP} ${ENV_LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "through" "maxSpeed" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
     {
-        ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
+        ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
         OPTIONS="${CMD_OPTIONS} -s "
         echo "server on remote ${REMOTE_HOST}: ${CMD_CLI} ${OPTIONS}"
-        ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " ${CMD_CLI} ${OPTIONS} " &>/dev/null
+        ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " ${CMD_CLI} ${OPTIONS} " &>/dev/null
     } &
     sleep 2
 
@@ -131,7 +134,7 @@ TestPerHost() {
 
     printf "_____________________________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
-    ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
+    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
 
     echo "" >>${RESULT_FILE}
     echo ""

@@ -12,6 +12,7 @@ CURRENT_FILENAME=$( basename $0 )
 ENV_SSH_PORT=${ENV_SSH_PORT:-"2022"}
 
 source /usr/sbin/rdmatools
+source getAllEndpoints
 
 POD_IP_LIST=${1:-""}
 [ -n "${POD_IP_LIST}" ] || { POD_IP_LIST=$( getOtherEndpoints 2>/dev/null ) || true ; }
@@ -50,6 +51,7 @@ echo "finished collectiong information"
 
 TestPerHostConnnect(){
     REMOTE_HOST="${1}"
+    REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
 
     echo "${CURRENT_FILENAME} case: between local node and the remote node ${REMOTE_HOST}  "
     [ -f "${REMOTE_INFOR_DIR}/${REMOTE_HOST}" ] || { echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_HOST} " ; exit 1 ; }
@@ -57,7 +59,7 @@ TestPerHostConnnect(){
 
     echo "" >> ${RESULT_FILE}
     printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-40s\n" "from local ${LOCAL_ENDPOINT_IP}" "to remote ${REMOTE_HOST}" "result"  >> ${RESULT_FILE}
+    printf "%-40s\t%-40s\t%-40s\n" "from ${LOCAL_ENDPOINT_IP} ${ENV_LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "result"  >> ${RESULT_FILE}
     printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
 
     while read LINE ; do
