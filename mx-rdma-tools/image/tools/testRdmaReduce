@@ -3,6 +3,16 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
+:<<EOF
+example1:
+    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaReduce 
+
+example2:
+    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaReduce  "10.0.0.10  10.0.0.2"
+
+EOF
+
+
 #set -x
 #set -o pipefail
 set -o errexit
@@ -23,6 +33,7 @@ POD_IP_LIST=${1:-""}
 if [ -z "${POD_IP_LIST}" ] ;then 
     POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
 fi
+echo "POD_IP_LIST: ${POD_IP_LIST}"
 [ -n "${POD_IP_LIST}" ] || {
     echo "error, no remote hosts "
     exit 1
@@ -69,7 +80,8 @@ NUM=$(ls ${REMOTE_INFOR_DIR} | wc -l)
 }
 echo "finished collectiong information"
 
-TestPerHost() {
+
+RunLocalClient() {
     REMOTE_HOST="${1}"
     REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
 
@@ -86,6 +98,8 @@ TestPerHost() {
 
     REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_HOST}"
     mkdir -p ${REMOTE_RUN_OUTPUT_DIR}
+    PORT=${START_PORT}
+
 
     while read LINE; do
         REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
@@ -94,6 +108,7 @@ TestPerHost() {
         REMOTE_MASK=$(echo "${LINE}" | awk '{print $4}')
         REMOTE_PROTOCOL=$(echo "${LINE}" | awk '{print $5}')
         REMOTE_INDEX=$(echo "${LINE}" | awk '{print $6}')
+        [ -n "${REMOTE_DEVICE}" ] || continue 
 
         OLD=$IFS
         IFS=$'\n'
@@ -120,26 +135,32 @@ TestPerHost() {
                         echo "error, failed to ping remote ${REMOTE_IP} from local interface ${LOCAL_INTERFACE}"
                         printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "failure" "failure" "${MAX_SPEED}" >>${RESULT_FILE}
                     else
-
-                        {
-                            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
-                            OPTIONS="-d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} ${CMD_OPTIONS} "
-                            echo "server on remote ${REMOTE_HOST}: ${CMD_CLI} ${OPTIONS}"
-                            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " ${CMD_CLI} ${OPTIONS} " &>/dev/null
-                        } &
-                        sleep 2
-
-                        OPTIONS="-d ${LOCAL_DEVICE} -x ${LOCAL_INDEX} ${CMD_OPTIONS} ${REMOTE_IP}"
+                        OPTIONS="-d ${LOCAL_DEVICE} -x ${LOCAL_INDEX} -p ${PORT} ${CMD_OPTIONS} ${REMOTE_IP}"
                         echo "clinet on local: ${CMD_CLI} ${OPTIONS}"
-                        { ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
-                        BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
-                        PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
-                        if [ -n "${BANDWITDH}" ]; then
-                            printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED}" >>${RESULT_FILE}
+                        if [ "${ASYNCHRONOUS}"x == "true"x ]; then
+                        (
+                            { ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
+                            BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
+                            PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
+                            if [ -n "${BANDWITDH}" ]; then
+                                printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED}" >>${RESULT_FILE}
+                            else
+                                echo "error, failed to test remote ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ) "
+                                printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
+                            fi
+                        )&
                         else
-                            echo "error, failed to test remote ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ) "
-                            printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
+                            { ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
+                            BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
+                            PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
+                            if [ -n "${BANDWITDH}" ]; then
+                                printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED}" >>${RESULT_FILE}
+                            else
+                                echo "error, failed to test remote ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ) "
+                                printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
+                            fi
                         fi
+                        (( PORT = PORT + 1))
                     fi
                 fi
             fi
@@ -148,22 +169,67 @@ TestPerHost() {
 
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
-    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
-
     echo "" >>${RESULT_FILE}
     echo ""
 
 }
 
+RunPerOnHost() {
+    REMOTE_HOST="${1}"
+    REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
+
+    [ -f "${REMOTE_INFOR_DIR}/${REMOTE_HOST}" ] || {
+        echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_HOST} "
+        exit 1
+    }
+    PORT=${START_PORT}
+
+    while read LINE; do
+        REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
+        REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
+        REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')
+        REMOTE_MASK=$(echo "${LINE}" | awk '{print $4}')
+        REMOTE_PROTOCOL=$(echo "${LINE}" | awk '{print $5}')
+        REMOTE_INDEX=$(echo "${LINE}" | awk '{print $6}')
+
+        [ -n "${REMOTE_DEVICE}" ] || continue 
+
+        OPTIONS="-d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} ${CMD_OPTIONS} "
+        OPTIONS+=" -p ${PORT} "
+        echo "server on remote ${REMOTE_HOST} for ${REMOTE_INTERFACE} with ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
+        (
+            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } " || true
+            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " &>/dev/null
+        )&
+
+        ((PORT=PORT+1))
+
+    done <${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+
+}
+
+
 TestRdma() {
-    echo ""
+    rm -rf ${RESULT_DIR}/*
+
+    echo " run server on all rdma devices of remote nodes, and run local client to visit them on each rdma device asynchronously"
+
+    echo "------------------ run server on all devices of each node ------------------"
     for ADDR in ${POD_IP_LIST}; do
-        TestPerHost "${ADDR}"
-        sleep 3
+        RunPerOnHost "${ADDR}"
     done
+    echo ""
+
+    echo "------------------ run local client on all devices ------------------"
+    for ADDR in ${POD_IP_LIST}; do
+        RunLocalClient "${ADDR}"
+    done
+    echo ""
+    # wait for all client finished
+    wait
 
     echo ""
-    echo "=================================== ${CURRENT_FILENAME} summary ===================================================="
+    echo "------------------ ${CURRENT_FILENAME} summary -------------------------"
     echo ""
     FILE_LIST=$(ls ${RESULT_DIR})
     for FILE_NAME in ${FILE_LIST}; do
@@ -171,16 +237,27 @@ TestRdma() {
         echo ""
     done
 
-    echo ""
-    echo "total $(ls ${RESULT_DIR} | wc -l) reports"
-    echo "all result is stored in ${RESULT_DIR}"
-    echo ""
+    sleep 5
+
 }
 
 #-------------------------
+DURATION=${DURATION:-"10"}
+LOOP_TIMES=${LOOP_TIMES:-"1"}
+START_PORT=${START_PORT:-"10001"}
+# run all RDMA client asynchronously for each rdma device and each node
+ASYNCHRONOUS=${ASYNCHRONOUS:-"true"}
+
+
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
-#BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F "}
-BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --report_gbits -F "}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F "}
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
-TestRdma
+
+echo "run ${LOOP_TIMES} times with duration ${DURATION} of ${LOOP_TIMES} round, asynchronously is ${ASYNCHRONOUS}"
+for ((i=1;i<=${LOOP_TIMES};i++)); do
+    echo "===================================== round ${i} ===================================="
+    TestRdma
+    echo ""
+done
+
