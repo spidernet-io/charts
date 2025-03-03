@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 :<<EOF
+在所有主机上的所有 rdma device 上分别启动一个 RDMA server, 
+顺序的，本地通过同轨的 rdma device 并行访问远端的 RDMA server
+
 example1:
     DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaReduce 
 
@@ -38,6 +41,9 @@ echo "POD_IP_LIST: ${POD_IP_LIST}"
     echo "error, no remote hosts "
     exit 1
 }
+
+DEFAULT_LOCAL_INT=$( ip r | grep default | grep -Eo "dev .*" | awk '{print $2}' )
+LOCAL_IP=$( ip -4 addr show ${DEFAULT_LOCAL_INT} | grep -oP '(?<=inet\s)[0-9]+(\.[0-9]+){3}' | head -1 )
 
 WORKDIR="/tmp/${CURRENT_FILENAME}-$(date +%Y%m%d%H%M%S%N)"
 REMOTE_INFOR_DIR="${WORKDIR}/remoteip"
@@ -172,6 +178,8 @@ RunLocalClient() {
     echo "" >>${RESULT_FILE}
     echo ""
 
+    wait
+
 }
 
 RunPerOnHost() {
@@ -215,18 +223,17 @@ TestRdma() {
     echo " run server on all rdma devices of remote nodes, and run local client to visit them on each rdma device asynchronously"
 
     echo "------------------ run server on all devices of each node ------------------"
-    for ADDR in ${POD_IP_LIST}; do
+    for ADDR in ${POD_IP_LIST} ${LOCAL_IP}; do
         RunPerOnHost "${ADDR}"
     done
     echo ""
 
-    echo "------------------ run local client on all devices ------------------"
+    echo "------------------ run local client to visit all remotes ------------------"
     for ADDR in ${POD_IP_LIST}; do
         RunLocalClient "${ADDR}"
     done
     echo ""
-    # wait for all client finished
-    wait
+
 
     echo ""
     echo "------------------ ${CURRENT_FILENAME} summary -------------------------"
@@ -250,7 +257,7 @@ ASYNCHRONOUS=${ASYNCHRONOUS:-"true"}
 
 
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
-BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F "}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 "}
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 

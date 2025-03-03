@@ -28,6 +28,7 @@ which iperf3 &>/dev/null
 which ping &>/dev/null
 which nvbandwidth &>/dev/null
 which bandwidthTest &>/dev/null
+which tcpdump &>/dev/null
 
 
 #ib_send_bw -h

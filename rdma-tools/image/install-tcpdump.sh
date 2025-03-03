@@ -52,6 +52,7 @@ make && make install
 cd /tmp/${ENV_VERSION_TCPDUMP}
 ./configure 
 make && make install
+echo "installed directory: $(which tcpdump )"
 
 cd /tmp
 rm -rf * || true

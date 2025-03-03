@@ -4,11 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 :<<EOF
+让每两两的主机之间，同轨网卡同时打满流程
+
 example1:
-    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaReduce 
+    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaPair
 
 example2:
-    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaReduce  "10.0.0.10  10.0.0.2"
+    DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=true  ./testRdmaPair  "10.233.94.236  10.233.116.235 10.233.101.251"
 
 EOF
 
@@ -33,11 +35,15 @@ POD_IP_LIST=${1:-""}
 if [ -z "${POD_IP_LIST}" ] ;then 
     POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
 fi
+echo ""
 echo "POD_IP_LIST: ${POD_IP_LIST}"
 [ -n "${POD_IP_LIST}" ] || {
     echo "error, no remote hosts "
     exit 1
 }
+
+DEFAULT_LOCAL_INT=$( ip r | grep default | grep -Eo "dev .*" | awk '{print $2}' )
+LOCAL_IP=$( ip -4 addr show ${DEFAULT_LOCAL_INT} | grep -oP '(?<=inet\s)[0-9]+(\.[0-9]+){3}' | head -1 )
 
 WORKDIR="/tmp/${CURRENT_FILENAME}-$(date +%Y%m%d%H%M%S%N)"
 REMOTE_INFOR_DIR="${WORKDIR}/remoteip"
@@ -60,7 +66,7 @@ LOCAL_ENDPOINT_IP=$( ip -4 addr show ${LOCAL_INT} | grep -oP '(?<=inet\s)[0-9]+(
 
 echo "collecting remote information ..."
 EXPECT_NUM=0
-for ADDR in ${POD_IP_LIST}; do
+for ADDR in ${POD_IP_LIST} ${LOCAL_ENDPOINT_IP}; do
     ((EXPECT_NUM += 1))
     (
         echo "collecting information from ${ADDR}"
@@ -78,25 +84,32 @@ NUM=$(ls ${REMOTE_INFOR_DIR} | wc -l)
     echo "error, failed to get information from all hosts"
     exit 1
 }
-echo "finished collectiong information"
+echo "finished collectiong information in ${REMOTE_INFOR_DIR}"
 
 
-RunLocalClient() {
-    REMOTE_HOST="${1}"
-    REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
+RunClient() {
+    REMOTE_CLIENT="${1}"
+    REMOTE_SERVER="${2}"
+    REMOTE_CLIENT_NAME=$( GetNodeName ${REMOTE_CLIENT} )
+    REMOTE_SERVER_NAME=$( GetNodeName ${REMOTE_SERVER} )
 
-    [ -f "${REMOTE_INFOR_DIR}/${REMOTE_HOST}" ] || {
-        echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_HOST} "
+
+    [ -f "${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}" ] || {
+        echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_CLIENT} "
         exit 1
     }
-    RESULT_FILE="${RESULT_DIR}/${REMOTE_HOST}"
+    [ -f "${REMOTE_INFOR_DIR}/${REMOTE_SERVER}" ] || {
+        echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_SERVER} "
+        exit 1
+    }
+    RESULT_FILE="${RESULT_DIR}/${REMOTE_SERVER}"
 
     echo "" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "from ${LOCAL_ENDPOINT_IP} ${ENV_LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" >>${RESULT_FILE}
+    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "from ${REMOTE_CLIENT} ${REMOTE_CLIENT_NAME}" "to ${REMOTE_SERVER} ${REMOTE_SERVER_NAME}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
-    REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_HOST}"
+    REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_SERVER}"
     mkdir -p ${REMOTE_RUN_OUTPUT_DIR}
     PORT=${START_PORT}
 
@@ -110,62 +123,64 @@ RunLocalClient() {
         REMOTE_INDEX=$(echo "${LINE}" | awk '{print $6}')
         [ -n "${REMOTE_DEVICE}" ] || continue 
 
-        OLD=$IFS
-        IFS=$'\n'
-        for ITEM in ${LOCAL_RDMA_INFO}; do
-            IFS=$OLD
-            LOCAL_DEVICE=$(echo "${ITEM}" | awk '{print $1}')
-            LOCAL_INTERFACE=$(echo "${ITEM}" | awk '{print $2}')
-            LOCAL_IP=$(echo "${ITEM}" | awk '{print $3}')
-            LOCAL_MASK=$(echo "${ITEM}" | awk '{print $4}')
-            LOCAL_PROTOCOL=$(echo "${ITEM}" | awk '{print $5}')
-            LOCAL_INDEX=$(echo "${ITEM}" | awk '{print $6}')
+
+        while read CLIENT_LINE; do
+            LOCAL_DEVICE=$(echo "${CLIENT_LINE}" | awk '{print $1}')
+            LOCAL_INTERFACE=$(echo "${CLIENT_LINE}" | awk '{print $2}')
+            LOCAL_IP=$(echo "${CLIENT_LINE}" | awk '{print $3}')
+            LOCAL_MASK=$(echo "${CLIENT_LINE}" | awk '{print $4}')
+            LOCAL_PROTOCOL=$(echo "${CLIENT_LINE}" | awk '{print $5}')
+            LOCAL_INDEX=$(echo "${CLIENT_LINE}" | awk '{print $6}')
+            [ -n "${LOCAL_DEVICE}" ] || continue 
 
             if [ "${REMOTE_MASK}"x == "${LOCAL_MASK}"x ] && [ -n "${LOCAL_MASK}" ]; then
                 if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}"; then
 
                     echo ""
                     echo "-------------------------------------------------------------------------------------------------"
-                    echo "${CURRENT_FILENAME} case: local node ( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) and the remote node ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} )  "
+                    echo "${CURRENT_FILENAME} case: client node ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME} ( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) and the server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} )  "
 
                     REMOTE_RUN_IP_OUTPUT_DIR="${REMOTE_RUN_OUTPUT_DIR}/${REMOTE_IP}"
 
                     MAX_SPEED=$(ethtool ${LOCAL_INTERFACE} | grep Speed | awk '{print $2}')
-                    if ! ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_IP} &>/dev/null; then
-                        echo "error, failed to ping remote ${REMOTE_IP} from local interface ${LOCAL_INTERFACE}"
-                        printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "failure" "failure" "${MAX_SPEED}" >>${RESULT_FILE}
-                    else
+                    #if ! ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_IP} &>/dev/null; then
+                    #    echo "error, failed to ping remote ${REMOTE_IP} from local interface ${LOCAL_INTERFACE}"
+                    #    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "failure" "failure" "${MAX_SPEED}" >>${RESULT_FILE}
+                    #else
                         OPTIONS="-d ${LOCAL_DEVICE} -x ${LOCAL_INDEX} -p ${PORT} ${CMD_OPTIONS} ${REMOTE_IP}"
-                        echo "clinet on local: ${CMD_CLI} ${OPTIONS}"
+                        echo "client on ${REMOTE_CLIENT}/${REMOTE_CLIENT}: ${CMD_CLI} ${OPTIONS}"
                         if [ "${ASYNCHRONOUS}"x == "true"x ]; then
                         (
-                            { ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
+                            { ssh  -p ${ENV_SSH_PORT} ${REMOTE_CLIENT} ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
                             BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
                             PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
                             if [ -n "${BANDWITDH}" ]; then
                                 printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED}" >>${RESULT_FILE}
                             else
-                                echo "error, failed to test remote ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ) "
+                                echo "error, ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME}( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) failed to test server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ${PORT} ) "
                                 printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
                             fi
                         )&
                         else
-                            { ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
+                            { ssh  -p ${ENV_SSH_PORT} ${REMOTE_CLIENT} ${CMD_CLI} ${OPTIONS} | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
                             BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
                             PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
                             if [ -n "${BANDWITDH}" ]; then
                                 printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED}" >>${RESULT_FILE}
                             else
-                                echo "error, failed to test remote ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ) "
+                                echo "error, ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME}( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) failed to test server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ${PORT} ) "
                                 printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
                             fi
                         fi
+
+                        echo "********* client ${REMOTE_CLIENT} : local ${LOCAL_INTERFACE}/${LOCAL_IP} -d ${LOCAL_DEVICE} -x ${LOCAL_INDEX}  ->  ${REMOTE_INTERFACE} ${REMOTE_IP} , -d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} -p ${PORT} "
+
                         (( PORT = PORT + 1))
-                    fi
+                    #fi
                 fi
             fi
-        done
-    done <${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+        done <${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}
+    done <${REMOTE_INFOR_DIR}/${REMOTE_SERVER}
 
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
@@ -200,9 +215,12 @@ RunPerOnHost() {
         OPTIONS+=" -p ${PORT} "
         echo "server on remote ${REMOTE_HOST} for ${REMOTE_INTERFACE} with ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
         (
-            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } " || true
-            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " &>/dev/null
+            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` ; [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } ; ${CMD_CLI} ${OPTIONS} " || true
+            #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " &>/dev/null
         )&
+
+        # debug
+        echo "********* server ${REMOTE_HOST} : for ${REMOTE_INTERFACE} ${REMOTE_IP} , -d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} -p ${PORT} "
 
         ((PORT=PORT+1))
 
@@ -214,21 +232,47 @@ RunPerOnHost() {
 TestRdma() {
     rm -rf ${RESULT_DIR}/*
 
-    echo " run server on all rdma devices of remote nodes, and run local client to visit them on each rdma device asynchronously"
+    echo " run pair test between: ${POD_IP_LIST} ${LOCAL_IP}  "
 
     echo "------------------ run server on all devices of each node ------------------"
-    for ADDR in ${POD_IP_LIST}; do
+    for ADDR in ${POD_IP_LIST} ${LOCAL_IP}; do
         RunPerOnHost "${ADDR}"
     done
     echo ""
+    # in case that client will be killed
+    sleep 2
 
-    echo "------------------ run local client on all devices ------------------"
-    for ADDR in ${POD_IP_LIST}; do
-        RunLocalClient "${ADDR}"
+    CLIENT_HOST=""
+    SERVER_HOST=""
+    CLIENT_NAME=""
+    SERVER_NAME=""
+    COUNTER=0
+    for ADDR in ${POD_IP_LIST} ${LOCAL_IP}; do
+        if [ -z "${CLIENT_HOST}" ] ; then
+            CLIENT_HOST="${ADDR}"
+            CLIENT_NAME=$( GetNodeName ${CLIENT_HOST} )
+            ((COUNTER=COUNTER+1))
+            continue
+        fi
+        if [ -z "${SERVER_HOST}" ] ; then
+            SERVER_HOST="${ADDR}"
+            SERVER_NAME=$( GetNodeName ${SERVER_HOST} )
+            ((COUNTER=COUNTER+1))
+        fi
+        echo "------------------ run communication from ${CLIENT_HOST}/${CLIENT_NAME} to ${SERVER_HOST}/${SERVER_NAME} ------------------"
+        ( RunClient "${CLIENT_HOST}" "${SERVER_HOST}" )&
+        CLIENT_HOST=""
+        SERVER_HOST=""
+        CLIENT_NAME=""
+        SERVER_NAME=""
+        COUNTER=0
     done
+    if (( COUNTER != 0 )) ; then
+        echo "host ${ADDR} is still free, need a pair"
+    fi
     echo ""
-    # wait for all client finished
-    wait
+    wait 
+
 
     echo ""
     echo "------------------ ${CURRENT_FILENAME} summary -------------------------"
