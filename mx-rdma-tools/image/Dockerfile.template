@@ -70,6 +70,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
 
 COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
+COPY --from=buildtools /usr/local/bin/tcpdump /usr/bin/tcpdump
 
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools

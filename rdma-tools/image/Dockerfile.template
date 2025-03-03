@@ -76,6 +76,7 @@ COPY --from=buildtools /opt/hpcx              /opt/hpcx
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
 COPY --from=buildtools /buildNvbandwidth/*     /usr/bin/
+COPY --from=buildtools /usr/local/bin/tcpdump  /usr/bin/tcpdump
 
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
