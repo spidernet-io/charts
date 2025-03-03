@@ -2,6 +2,24 @@ apiVersion: v1
 entries:
   mx-rdma-tools:
   - apiVersion: v2
+    appVersion: 0.0.3
+    created: "2025-03-03T11:02:20.109295965Z"
+    description: rdma test
+    digest: e328a55afaedf618638cba53d9e7ef170bdae05dce009cd8b23feb949af0966c
+    home: https://spidernet-io.github.io/charts
+    keywords:
+    - rdma
+    - networking
+    - mx
+    kubeVersion: '>= 1.16.0-0'
+    name: mx-rdma-tools
+    sources:
+    - https://spidernet-io.github.io/charts
+    type: application
+    urls:
+    - https://spidernet-io.github.io/charts/charts/mx-rdma-tools-0.0.3.tgz
+    version: 0.0.3
+  - apiVersion: v2
     appVersion: 0.0.1
     created: "2025-03-03T11:08:50.959847249Z"
     description: rdma test
@@ -142,3 +160,4 @@ entries:
     - https://spidernet-io.github.io/charts/charts/rdma-tools-0.1.0.tgz
     version: 0.1.0
 generated: "2025-03-03T11:08:50.959056726Z"
+
