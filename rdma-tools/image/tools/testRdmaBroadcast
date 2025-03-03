@@ -170,7 +170,7 @@ RunLocalClient() {
                 fi
             fi
         done
-        
+
         (( PORT = PORT + 1))
     done <${REMOTE_INFOR_DIR}/${REMOTE_HOST}
 
@@ -193,6 +193,7 @@ RunPerOnHost() {
     }
     PORT=${START_PORT}
 
+    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
     while read LINE; do
         REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
         REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
@@ -207,7 +208,7 @@ RunPerOnHost() {
         OPTIONS+=" -p ${PORT} "
         echo "server on remote ${REMOTE_HOST} for ${REMOTE_INTERFACE} with ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
         (
-            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } " || true
+            #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } " || true
             ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " &>/dev/null
         )&
 
