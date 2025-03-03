@@ -166,11 +166,12 @@ RunLocalClient() {
                                 printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
                             fi
                         fi
-                        (( PORT = PORT + 1))
                     fi
                 fi
             fi
         done
+        
+        (( PORT = PORT + 1))
     done <${REMOTE_INFOR_DIR}/${REMOTE_HOST}
 
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}

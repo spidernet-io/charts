@@ -174,7 +174,7 @@ TestRdma() {
 
 #-------------------------
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
-BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F "}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F -q 4 "}
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 TestRdma
