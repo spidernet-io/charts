@@ -74,6 +74,7 @@ packages=(
   libltdl7
   libnuma1
   vim
+  psmisc
 )
 
 export DEBIAN_FRONTEND=noninteractive

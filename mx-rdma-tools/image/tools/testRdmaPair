@@ -4,10 +4,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 :<<EOF
-同时进行两两主机之间的打流测试，包括同轨和跨轨网卡打流，在两个主机之间打流时，ASYNCHRONOUS=true 是让8个网卡同时打流，还是一个一个网卡打
+同时进行两两主机之间的打流测试，包括同轨和跨轨网卡打流，在两个主机之间打流时，
+    ASYNCHRONOUS=true 是让8个网卡同时打流，还是一个一个网卡打
+    SAME_NETWORK_TRACK=true 是 让同轨网卡打流，还是跨轨
 
 example1:
-    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  ./testRdmaPair
+    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  SAME_NETWORK_TRACK=true ./testRdmaPair
 
 example2:
     DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=true  ./testRdmaPair  "10.233.94.236  10.233.116.235 10.233.101.251"
@@ -143,13 +145,18 @@ RunClient() {
 
             [ -n "${LOCAL_DEVICE}" ] || continue 
 
-            SAME_NETWORK_TRACK="false"
+            SAME_TRACK="false"
             if [ "${REMOTE_MASK}"x == "${LOCAL_MASK}"x ] && [ -n "${LOCAL_MASK}" ]; then
                 if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}"; then
-                    SAME_NETWORK_TRACK="true"
+                    SAME_TRACK="true"
                 fi 
             fi
-            [ "${SAME_NETWORK_TRACK}"x == "true"x ] || continue
+            
+            if [ "${SAME_NETWORK_TRACK}" == "true" ] ; then
+                [ "${SAME_TRACK}"x == "true"x ] || continue
+            else
+                [ "${SAME_TRACK}"x == "false"x ] || continue
+            fi 
 
             echo ""
             echo "-------------------------------------------------------------------------------------------------"
@@ -167,10 +174,10 @@ RunClient() {
                     BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
                     PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
                     if [ -n "${BANDWITDH}" ]; then
-                        printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED} ${SAME_NETWORK_TRACK}" >>${RESULT_FILE}
+                        printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
                     else
                         echo "error, ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME}( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) failed to test server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ${PORT} ) "
-                        printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED} ${SAME_NETWORK_TRACK}" >>${RESULT_FILE}
+                        printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
                     fi
                 )&
             else
@@ -178,10 +185,10 @@ RunClient() {
                 BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
                 PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
                 if [ -n "${BANDWITDH}" ]; then
-                    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED} ${SAME_NETWORK_TRACK}" >>${RESULT_FILE}
+                    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
                 else
                     echo "error, ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME}( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) failed to test server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ${PORT} ) "
-                    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED} ${SAME_NETWORK_TRACK}" >>${RESULT_FILE}
+                    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
                 fi
             fi
 
@@ -273,8 +280,16 @@ TestRdma() {
         CLIENT_NAME=""
         SERVER_NAME=""
     done
-    echo ""
-    wait 
+
+    # (
+    #     sleep ${DURATION} 
+    #     sleep ${DURATION} 
+    #     echo "kill all ib_write_bw and ssh"
+    #     killall ib_write_bw || true
+    #     killall ssh || true
+    # )&
+    echo "wait for all tests finish"
+    wait
 
 
     echo ""
@@ -296,7 +311,7 @@ LOOP_TIMES=${LOOP_TIMES:-"1"}
 START_PORT=${START_PORT:-"10001"}
 # run all RDMA client asynchronously for each rdma device and each node
 ASYNCHRONOUS=${ASYNCHRONOUS:-"true"}
-
+SAME_NETWORK_TRACK=${SAME_NETWORK_TRACK:-"true"}
 
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
 BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 "}
