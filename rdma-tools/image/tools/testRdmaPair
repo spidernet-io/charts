@@ -122,7 +122,7 @@ RunClient() {
     # reset the port
     PORT=${START_PORT}
     while read LINE; do
-            echo "=== SERVER LINE: ${LINE}"
+        echo "=== SERVER LINE: ${LINE}"
         REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
         REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
         REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')

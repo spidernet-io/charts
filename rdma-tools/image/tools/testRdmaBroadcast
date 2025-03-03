@@ -225,7 +225,7 @@ TestRdma() {
     echo " run server on all rdma devices of remote nodes, and run local client to visit them on each rdma device asynchronously"
 
     echo "------------------ run server on all devices of each node ------------------"
-    for ADDR in ${POD_IP_LIST} ${LOCAL_IP}; do
+    for ADDR in ${POD_IP_LIST} ; do
         RunPerOnHost "${ADDR}"
     done
     echo ""
