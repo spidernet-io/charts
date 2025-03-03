@@ -126,6 +126,7 @@ packages=(
   libelf1
   libltdl7
   libnuma1
+  psmisc
 )
 
 export DEBIAN_FRONTEND=noninteractive
