@@ -51,6 +51,7 @@ make --help
 make && make install
 
 cd /tmp/${ENV_VERSION_TCPDUMP}
+./configure  --help
 ./configure 
 make && make install
 
