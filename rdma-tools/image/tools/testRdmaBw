@@ -17,9 +17,12 @@ CURRENT_FILENAME=$(basename $0)
 ENV_SSH_PORT=${ENV_SSH_PORT:-"2022"}
 
 source /usr/sbin/rdmatools
+source getAllEndpoints
 
 POD_IP_LIST=${1:-""}
-[ -n "${POD_IP_LIST}" ] || { POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true; }
+if [ -z "${POD_IP_LIST}" ] ;then 
+    POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
+fi
 [ -n "${POD_IP_LIST}" ] || {
     echo "error, no remote hosts "
     exit 1
@@ -43,13 +46,14 @@ LOCAL_RDMA_INFO=$(GetLocalRdmaDeviceIP)
 LOCAL_INT=$( ip r | grep default | head -1 | grep -oE "dev [^[:space:]]+"  | awk '{print $2}' )
 LOCAL_ENDPOINT_IP=$( ip -4 addr show ${LOCAL_INT} | grep -oP '(?<=inet\s)[0-9]+(\.[0-9]+){3}'	 )
 
+
 echo "collecting remote information ..."
 EXPECT_NUM=0
 for ADDR in ${POD_IP_LIST}; do
     ((EXPECT_NUM += 1))
     (
         echo "collecting information from ${ADDR}"
-        REMOTE_RDMA_INFO=$(ssh -p ${ENV_SSH_PORT} ${ADDR} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP ")
+        REMOTE_RDMA_INFO=$(ssh  -p ${ENV_SSH_PORT} ${ADDR} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP ")
         if [ -n "${REMOTE_RDMA_INFO}" ]; then
             echo "${REMOTE_RDMA_INFO}" >${REMOTE_INFOR_DIR}/${ADDR}
         else
@@ -67,6 +71,7 @@ echo "finished collectiong information"
 
 TestPerHost() {
     REMOTE_HOST="${1}"
+    REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
 
     [ -f "${REMOTE_INFOR_DIR}/${REMOTE_HOST}" ] || {
         echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_HOST} "
@@ -76,7 +81,7 @@ TestPerHost() {
 
     echo "" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "from local ${LOCAL_ENDPOINT_IP}" "to remote ${REMOTE_HOST}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" >>${RESULT_FILE}
+    printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "from ${LOCAL_ENDPOINT_IP} ${ENV_LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
     REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_HOST}"
@@ -117,10 +122,10 @@ TestPerHost() {
                     else
 
                         {
-                            ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
+                            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
                             OPTIONS="-d ${REMOTE_DEVICE} -x ${REMOTE_INDEX} ${CMD_OPTIONS} "
                             echo "server on remote ${REMOTE_HOST}: ${CMD_CLI} ${OPTIONS}"
-                            ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " ${CMD_CLI} ${OPTIONS} " &>/dev/null
+                            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " ${CMD_CLI} ${OPTIONS} " &>/dev/null
                         } &
                         sleep 2
 
@@ -143,7 +148,7 @@ TestPerHost() {
 
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
-    ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
+    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` && [ -n \"\${PID}\" ] && kill -9 \${PID}  " || true
 
     echo "" >>${RESULT_FILE}
     echo ""
@@ -174,7 +179,8 @@ TestRdma() {
 
 #-------------------------
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
-BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F -q 4 "}
+#BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --rdma_cm --report_gbits -F "}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration 6 --report_gbits -F -q 4 --rdma_cm "}
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 TestRdma

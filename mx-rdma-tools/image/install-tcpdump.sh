@@ -47,6 +47,7 @@ tar -xvf ${ENV_VERSION_TCPDUMP}.tar.xz || { echo "Failed to extract tcpdump"; ex
 
 cd /tmp/${ENV_VERSION_LIBCAP}
 ./configure 
+make --help
 make && make install
 
 cd /tmp/${ENV_VERSION_TCPDUMP}
@@ -54,6 +55,10 @@ cd /tmp/${ENV_VERSION_TCPDUMP}
 make && make install
 
 echo "installed directory: $(which tcpdump )"
+
+echo "libcap : $( ldconfig -p | grep ibpcap ) " || true 
+echo "libcap : $( find / -name libpcap* ) " || true 
+
 
 cd /tmp
 rm -rf * || true

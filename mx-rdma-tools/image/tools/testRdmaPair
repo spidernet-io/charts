@@ -9,10 +9,10 @@
     SAME_NETWORK_TRACK=true 是 让同轨网卡打流，还是跨轨
 
 example1:
-    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  SAME_NETWORK_TRACK=true ./testRdmaPair
+    DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  SAME_NETWORK_TRACK=true testRdmaPair
 
 example2:
-    DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=true  ./testRdmaPair  "10.233.94.236  10.233.116.235 10.233.101.251"
+    DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=true  testRdmaPair  "10.233.94.236  10.233.116.235 10.233.101.251"
 
 EOF
 
@@ -315,7 +315,7 @@ ASYNCHRONOUS=${ASYNCHRONOUS:-"true"}
 SAME_NETWORK_TRACK=${SAME_NETWORK_TRACK:-"true"}
 
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
-BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 "}
+BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 --rdma_cm  --tos=160 "}
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 
