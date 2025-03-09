@@ -7,6 +7,7 @@
     PING_COUNT=30  testArping
 EOF
 
+
 #set -x
 #set -o pipefail
 set -o errexit
