@@ -12,7 +12,13 @@ example1:
     DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  SAME_NETWORK_TRACK=true testRdmaPair
 
 example2:
-    DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=true  testRdmaPair  "10.233.94.236  10.233.116.235 10.233.101.251"
+    DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=false  testRdmaPair  "10.233.94.236  10.233.116.235 10.233.101.251"
+
+rdma cm:
+    DURATION=5  LOOP_TIMES=1 ASYNCHRONOUS=false ENABLE_RDMA_QOS=true RDMA_QOS=160 testRdmaPair  "10.0.0.10  10.0.0.2"
+
+exclude
+    EXCLUDE_ENDPOINT="10.0.0.10 10.0.0.2" DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=false  testRdmaPair  
 
 EOF
 
@@ -29,6 +35,7 @@ fi
 
 CURRENT_FILENAME=$(basename $0)
 ENV_SSH_PORT=${ENV_SSH_PORT:-"2022"}
+EXCLUDE_ENDPOINT=${EXCLUDE_ENDPOINT:-""}
 
 source /usr/sbin/rdmatools
 source getAllEndpoints
@@ -37,8 +44,20 @@ POD_IP_LIST=${1:-""}
 if [ -z "${POD_IP_LIST}" ] ;then 
     POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
 fi
+
+if [ -n "${EXCLUDE_ENDPOINT}" ]; then
+    echo ""
+    TMP_LIST=""
+    for ADDR in ${POD_IP_LIST} ; do
+        ! grep " ${ADDR} " <<< " ${EXCLUDE_ENDPOINT} " &>/dev/null || { echo "exclude ${ADDR}" && continue ; }
+        TMP_LIST="${TMP_LIST} ${ADDR}"
+    done
+    POD_IP_LIST="${TMP_LIST}"
+fi
+
 echo ""
 echo "POD_IP_LIST: ${POD_IP_LIST}"
+echo ""
 [ -n "${POD_IP_LIST}" ] || {
     echo "error, no remote hosts "
     exit 1
@@ -319,7 +338,7 @@ BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
 ENABLE_RDMA_QOS=${ENABLE_RDMA_QOS:-""}
 BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 "}
 [ "${ENABLE_RDMA_QOS}" != "true" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --rdma_cm"
-[ -z "${RDMA_QOS}" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --rdma_qos ${RDMA_QOS}"
+[ -z "${RDMA_QOS}" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --tos ${RDMA_QOS}"
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 

@@ -3,6 +3,24 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
+:<<EOF
+在所有主机上的所有 rdma device 上分别启动一个 RDMA server, 
+顺序的，本地通过同轨的 rdma device 并行访问远端的 RDMA server
+
+example1:
+    DURATION=30  testRdmaBroadcast 
+
+example2:
+    DURATION=5   testRdmaBroadcast  "10.0.0.10  10.0.0.2"
+
+rdma cm:
+    DURATION=5   ENABLE_RDMA_QOS=true RDMA_QOS=160 testRdmaBroadcast  "10.0.0.10  10.0.0.2"
+
+exclude
+    EXCLUDE_ENDPOINT="10.0.0.10 10.0.0.2" DURATION=10  testRdmaBroadcast 
+
+EOF
+
 #set -x
 #set -o pipefail
 set -o errexit
@@ -23,10 +41,16 @@ POD_IP_LIST=${1:-""}
 if [ -z "${POD_IP_LIST}" ] ;then 
     POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
 fi
-[ -n "${POD_IP_LIST}" ] || {
-    echo "error, no remote hosts "
-    exit 1
-}
+
+if [ -n "${EXCLUDE_ENDPOINT}" ]; then
+    echo ""
+    TMP_LIST=""
+    for ADDR in ${POD_IP_LIST} ; do
+        ! grep " ${ADDR} " <<< " ${EXCLUDE_ENDPOINT} " &>/dev/null || { echo "exclude ${ADDR}" && continue ; }
+        TMP_LIST="${TMP_LIST} ${ADDR}"
+    done
+    POD_IP_LIST="${TMP_LIST}"
+fi
 
 WORKDIR="/tmp/${CURRENT_FILENAME}-$(date +%Y%m%d%H%M%S%N)"
 REMOTE_INFOR_DIR="${WORKDIR}/remoteip"
@@ -178,12 +202,13 @@ TestRdma() {
 }
 
 #-------------------------
+DURATION=${DURATION:-"5"}
 RDMA_QOS=${RDMA_QOS:-""}
 BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
 ENABLE_RDMA_QOS=${ENABLE_RDMA_QOS:-""}
 BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 "}
 [ "${ENABLE_RDMA_QOS}" != "true" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --rdma_cm"
-[ -z "${RDMA_QOS}" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --rdma_qos ${RDMA_QOS}"
+[ -z "${RDMA_QOS}" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --tos ${RDMA_QOS}"
 
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"

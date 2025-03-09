@@ -11,7 +11,13 @@ example1:
     DURATION=30 LOOP_TIMES=2 ASYNCHRONOUS=true  testRdmaBroadcast 
 
 example2:
-    DURATION=5  LOOP_TIMES=1 ASYNCHRONOUS=true  testRdmaBroadcast  "10.0.0.10  10.0.0.2"
+    DURATION=5  LOOP_TIMES=1 ASYNCHRONOUS=false testRdmaBroadcast  "10.0.0.10  10.0.0.2"
+
+rdma cm:
+    DURATION=5  LOOP_TIMES=1 ASYNCHRONOUS=false ENABLE_RDMA_QOS=true RDMA_QOS=160 testRdmaBroadcast  "10.0.0.10  10.0.0.2"
+
+exclude
+    EXCLUDE_ENDPOINT="10.0.0.10 10.0.0.2" DURATION=10 LOOP_TIMES=1 ASYNCHRONOUS=false  testRdmaBroadcast 
 
 EOF
 
@@ -36,7 +42,20 @@ POD_IP_LIST=${1:-""}
 if [ -z "${POD_IP_LIST}" ] ;then 
     POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
 fi
+
+if [ -n "${EXCLUDE_ENDPOINT}" ]; then
+    echo ""
+    TMP_LIST=""
+    for ADDR in ${POD_IP_LIST} ; do
+        ! grep " ${ADDR} " <<< " ${EXCLUDE_ENDPOINT} " &>/dev/null || { echo "exclude ${ADDR}" && continue ; }
+        TMP_LIST="${TMP_LIST} ${ADDR}"
+    done
+    POD_IP_LIST="${TMP_LIST}"
+fi
+
+echo ""
 echo "POD_IP_LIST: ${POD_IP_LIST}"
+echo ""
 [ -n "${POD_IP_LIST}" ] || {
     echo "error, no remote hosts "
     exit 1
@@ -105,6 +124,7 @@ RunLocalClient() {
     REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_HOST}"
     mkdir -p ${REMOTE_RUN_OUTPUT_DIR}
     PORT=${START_PORT}
+    COUNTER=0
 
 
     while read LINE; do
@@ -165,6 +185,7 @@ RunLocalClient() {
                                 echo "error, failed to test remote ${REMOTE_HOST} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ) "
                                 printf "%-40s\t%-40s\t%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED}" >>${RESULT_FILE}
                             fi
+                            ((COUNTER++))
                         fi
                     fi
                 fi
@@ -179,7 +200,14 @@ RunLocalClient() {
     echo "" >>${RESULT_FILE}
     echo ""
 
-    wait
+
+    # wait
+    sleep 5
+    if [ "${ASYNCHRONOUS}"x == "true"x ]; then
+        sleep ${DURATION}
+    else
+        sleep $(( DURATION * COUNTER ))
+    fi
 
 }
 
@@ -263,7 +291,7 @@ BW_CMD_CLI=${BW_CMD_CLI:-"ib_write_bw"}
 ENABLE_RDMA_QOS=${ENABLE_RDMA_QOS:-""}
 BW_CMD_OPTIONS=${BW_CMD_OPTIONS:-"--disable_pcie_relaxed --duration ${DURATION} --report_gbits -F -q 4 "}
 [ "${ENABLE_RDMA_QOS}" != "true" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --rdma_cm"
-[ -z "${RDMA_QOS}" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --rdma_qos ${RDMA_QOS}"
+[ -z "${RDMA_QOS}" ] || BW_CMD_OPTIONS="${BW_CMD_OPTIONS} --tos ${RDMA_QOS}"
 
 CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
