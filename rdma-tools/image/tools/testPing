@@ -11,6 +11,8 @@ set -o nounset
 CURRENT_FILENAME=$( basename $0 )
 ENV_SSH_PORT=${ENV_SSH_PORT:-"2022"}
 
+PING_COUNT=${PING_COUNT:-"20"}
+
 source /usr/sbin/rdmatools
 source getAllEndpoints
 
@@ -20,9 +22,11 @@ POD_IP_LIST=${1:-""}
 
 WORKDIR="/tmp/${CURRENT_FILENAME}-$(date +%Y%m%d%H%M%S%N)"
 REMOTE_INFOR_DIR="${WORKDIR}/remote"
+TMP_RESULT_DIR="${WORKDIR}/tmp"
 RESULT_DIR="${WORKDIR}/result"
 mkdir -p ${WORKDIR}
 mkdir -p ${REMOTE_INFOR_DIR}
+mkdir -p ${TMP_RESULT_DIR}
 mkdir -p ${RESULT_DIR}
 
 echo "collecting local information ..."
@@ -49,6 +53,9 @@ NUM=$( ls ${REMOTE_INFOR_DIR} | wc -l  )
 (( NUM == EXPECT_NUM )) || { echo "error, failed to get information from all hosts" ; exit 1 ; }
 echo "finished collectiong information"
 
+FAIL_FILE="${WORKDIR}/result-fail"
+rm -f ${FAIL_FILE} || true
+
 TestPerHostConnnect(){
     REMOTE_HOST="${1}"
     REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
@@ -58,9 +65,9 @@ TestPerHostConnnect(){
     RESULT_FILE="${RESULT_DIR}/${REMOTE_HOST}"
 
     echo "" >> ${RESULT_FILE}
-    printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-40s\n" "from ${LOCAL_ENDPOINT_IP} ${ENV_LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "result"  >> ${RESULT_FILE}
-    printf "________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    printf "________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    printf "%-40s\t%-40s\t%-10s\t%-40s\n" "from ${LOCAL_ENDPOINT_IP} ${ENV_LOCAL_NODE_NAME}" "to ${REMOTE_HOST} ${REMOTE_NODE_NAME}" "result" "detail"  >> ${RESULT_FILE}
+    printf "________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
 
     while read LINE ; do
         REMOTE_INTERFACE=$( echo "${LINE}" | awk '{print $1}' )
@@ -78,10 +85,21 @@ TestPerHostConnnect(){
             {
                 if [ "${REMOTE_MASK}"x == "${LOCAL_MASK}"x ] && [ -n "${LOCAL_MASK}" ]; then
                     if CheckIPv4SameSubnet "${LOCAL_IP}" "${REMOTE_IP}" "${LOCAL_MASK}" || ( ((LOCAL_MASK==32)) && ((REMOTE_MASK==32))  ) ; then
+                        # quick check firstly
                         if ping -I ${LOCAL_INTERFACE} -c 2 ${REMOTE_IP} &>/dev/null ; then
-                            printf "%-40s\t%-40s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "success" >> ${RESULT_FILE}
+                            # continue to check
+                            ping -I ${LOCAL_INTERFACE} -c ${PING_COUNT} ${REMOTE_IP} &>${TMP_RESULT_DIR}/${REMOTE_IP}
+                            SUMMARY=$( grep "packet loss" ${TMP_RESULT_DIR}/${REMOTE_IP} )
+                            LOSS=$( echo "${SUMMARY}" | grep -Eo " [^[:space:]]+ packet loss" | awk '{print $1}' )
+                            if [ "${LOSS}" == "0%" ] ; then
+                                printf "%-40s\t%-40s\t%-10s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "success" "${SUMMARY}" >> ${RESULT_FILE}
+                            else
+                                printf "%-40s\t%-40s\t%-10s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "failure" "${SUMMARY}" >> ${RESULT_FILE}
+                                echo > ${FAIL_FILE}
+                            fi
                         else
-                            printf "%-40s\t%-40s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "failure" >> ${RESULT_FILE}
+                            printf "%-40s\t%-40s\t%-10s\t%-40s\n" "${LOCAL_INTERFACE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_IP}" "failure" "failed to ping">> ${RESULT_FILE}
+                            echo > ${FAIL_FILE}
                         fi
                     fi
                 fi
@@ -114,6 +132,14 @@ TestConnnect(){
     echo ""
     echo "total $( ls ${RESULT_DIR} | wc -l ) reports"
     echo "all result is stored in ${RESULT_DIR}"
+
+    if [ -f "${FAIL_FILE}" ] ; then  
+        echo "!!! test failed"
+        exit 1
+    else
+        echo "all test succeeded"
+        exit 0
+    fi
 }
 
 TestConnnect

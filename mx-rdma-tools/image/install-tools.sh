@@ -51,7 +51,7 @@ packages=(
   iperf3
   # ping
   iputils-ping
-  iputils-arping
+  arping
   dnsutils
   # ssh server
   openssh-server
