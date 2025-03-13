@@ -98,6 +98,7 @@ KOIg9RxhZFQoPXptaQZDLz89sWmZaiXsyBPJyjlmaTjwHGM=
 
 InstallSSH() {
   # for mpirun
+  rm -rf  /root/.ssh
   mkdir /root/.ssh || true
   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
   cat ~/.ssh/id_ed25519.pub >>~/.ssh/authorized_keys
