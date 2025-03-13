@@ -9,6 +9,10 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+if [ "${ENV_INSTALL_HPCX}" == "false" ] ; then
+    exit 0
+fi
+
 echo "--------------- install hpxc -------------------"
 # example : ENV_DOWNLOAD_HPCX_URL=https://content.mellanox.com/hpc/hpc-x/v2.19/hpcx-v2.19-gcc-mlnx_ofed-ubuntu22.04-cuda12-x86_64.tbz
 HPCX_DEST_DIR="/opt/hpcx"

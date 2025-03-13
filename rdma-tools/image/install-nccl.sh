@@ -9,6 +9,10 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+if [ "${ENV_INSTALL_HPCX}" == "false" ] ; then
+    exit 0
+fi
+
 InstallNccl() {
   echo " install nccl"
 
