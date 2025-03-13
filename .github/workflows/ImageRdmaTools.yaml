@@ -151,7 +151,7 @@ jobs:
     with:
       code_sha: ${{ needs.get_light_info.outputs.code_sha }}
       push_image: ${{ needs.get_light_info.outputs.push_image }}
-      image_name: light-${{ needs.get_light_info.outputs.image_name }}
+      image_name: ${{ needs.get_light_info.outputs.image_name }}
       dockerfile_dirctory: ${{ needs.get_light_info.outputs.dockerfile_dirctory }}
       build_platform: ${{ needs.get_light_info.outputs.build_platform }}
       upload_artifact: ${{ needs.get_light_info.outputs.upload_artifact }}
