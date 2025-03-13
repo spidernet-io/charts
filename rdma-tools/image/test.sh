@@ -8,8 +8,20 @@ set -o xtrace
 set -o errexit
 set -o nounset
 
-source /opt/hpcx/hpcx-init.sh
-hpcx_load
+echo "ENV_INSTALL_HPCX=${ENV_INSTALL_HPCX}"
+
+if [ "${ENV_INSTALL_HPCX}" == "true" ] ; then 
+    source /opt/hpcx/hpcx-init.sh
+    hpcx_load
+
+    which nvbandwidth &>/dev/null
+    which bandwidthTest &>/dev/null
+
+    all_reduce_perf -h
+    mpirun --allow-run-as-root -h
+
+    echo "MPI_HOME=${MPI_HOME}"
+fi 
 
 ip a &>/dev/null
 which show_gids &>/dev/null
@@ -26,18 +38,12 @@ which ibhosts &>/dev/null
 which ibping &>/dev/null
 which iperf3 &>/dev/null
 which ping &>/dev/null
-which nvbandwidth &>/dev/null
-which bandwidthTest &>/dev/null
 which tcpdump &>/dev/null
-
 
 #ib_send_bw -h
 ib_send_bw |& grep "Did not detect devices"
 
-all_reduce_perf -h
-mpirun --allow-run-as-root -h
-
 echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-echo "MPI_HOME=${MPI_HOME}"
+
 
 exit 0

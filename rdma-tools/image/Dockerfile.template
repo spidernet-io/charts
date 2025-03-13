@@ -91,7 +91,7 @@ RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
 RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
 RUN chmod +x /install-nccl.sh && export ENV_INSTALL_HPCX=<<ENV_INSTALL_HPCX>> && /install-nccl.sh && rm -f /install-nccl.sh
 # check binary
-RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
+RUN chmod +x /test.sh && ENV_INSTALL_HPCX=<<ENV_INSTALL_HPCX>> /test.sh && rm -f /test.sh
 
 
 # Begin auto-generated paths
