@@ -30,13 +30,9 @@ on:
       upload_artifact:
         required: true
         type: string
-      generateDockerfileScript:
+      generateDockerfileCmd:
         required: false
         type: string
-      nccl_base:
-        required: false
-        default: false
-        type: boolean
     outputs:
       imageArtifactName:
         description: "image Artifact Name"
@@ -121,15 +117,7 @@ jobs:
              [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
              echo "image_tag=${image_tag}" >> $GITHUB_ENV
           fi
-          GENERATE_SCRIPT_PATH=${{ inputs.generateDockerfileScript }}
-          if [ -n "${GENERATE_SCRIPT_PATH}" ]; then
-              [ -f "${GENERATE_SCRIPT_PATH}" ] || { echo "error, failed to find generateDockerfileScript: ${GENERATE_SCRIPT_PATH}"; exit 1 ; }
-              DIR_PATH=$( dirname ${GENERATE_SCRIPT_PATH} )
-              SCRIPT_NAME=$( basename ${GENERATE_SCRIPT_PATH} )
-              cd ${DIR_PATH}
-              chmod +x ${SCRIPT_NAME}
-              VAR_NCCL_BASE="${{ inputs.nccl_base }}"  ./${SCRIPT_NAME}              
-          fi
+          ${{ inputs.generateDockerfileCmd }}
 
       - name: Login to online register
         uses: docker/login-action@v3.2.0

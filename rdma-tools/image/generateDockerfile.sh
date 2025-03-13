@@ -3,6 +3,11 @@
 # for base image tag
 
 set -x
+
+CURRENT_FILENAME=`basename $0`
+CURRENT_DIR_PATH=$(cd `dirname $0`; pwd)
+cd ${CURRENT_DIR_PATH}
+
 VAR_NCCL_BASE=${VAR_NCCL_BASE:-"true"}
 echo "VAR_NCCL_BASE=${VAR_NCCL_BASE}"
 
@@ -86,4 +91,6 @@ echo ""
 echo "------------------------ show Dockerfile ---------------------------"
 cat Dockerfile
 echo ""
+
+
 
