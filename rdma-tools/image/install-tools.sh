@@ -132,13 +132,6 @@ InstallOfedRepo() {
 }
 
 
-InstallGdrCopy() {
-  echo "install gdrcopy library"
-  cd /buildGdrcopy
-  dpkg -i *.deb
-  rm -rf /buildGdrcopy
-}
-
 packages=(
   iproute2
   smc-tools
@@ -186,7 +179,6 @@ ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 InstallOfedRepo
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstallSSH
-InstallGdrCopy
 
 apt-get purge --auto-remove
 apt-get clean
