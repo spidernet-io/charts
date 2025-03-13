@@ -78,7 +78,7 @@ jobs:
           VAR_NCCL_BASE=true ./generateDockerfile.sh
           image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
           [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
-          echo "image_tag=${ENV_BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
+          echo "image_tag=${image_tag}" >> $GITHUB_ENV
 
   call-nccl-workflow:
     needs: [get_nccl_info]
@@ -143,7 +143,7 @@ jobs:
           VAR_NCCL_BASE=true ./generateDockerfile.sh
           image_tag=$( git ls-tree --full-tree HEAD -- ${{ env.DOCKERFILE_PATH }} | awk '{ print $3 }' )
           [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
-          echo "image_tag=${ENV_BASEIMAGE_CUDA_VERISON}-${image_tag}" >> $GITHUB_ENV
+          echo "image_tag=light-${image_tag}" >> $GITHUB_ENV
 
   call-light-workflow:
     needs: [get_light_info]

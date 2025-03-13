@@ -118,7 +118,7 @@ jobs:
           # image_tag from current tag
           image_tag=$(grep -Eo 'v[0-9]+.[0-9]+.[0-9]+' <<< "${{ env.CODE_SHA }}")
           [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
-          echo "image_tag=${image_tag}" >> $GITHUB_OUTPUT
+          echo "image_tag=light-${image_tag}" >> $GITHUB_OUTPUT
 
   call-image-light-workflow:
     needs: [get_light_info]
@@ -126,7 +126,7 @@ jobs:
     with:
       code_sha: ${{ needs.get_light_info.outputs.code_sha }}
       push_image: true
-      image_name: light-${{ needs.get_light_info.outputs.image_name }}
+      image_name: ${{ needs.get_light_info.outputs.image_name }}
       dockerfile_dirctory: ${{ needs.get_light_info.outputs.dockerfile_dirctory }}
       build_platform: ${{ needs.get_light_info.outputs.build_platform }}
       upload_artifact: false
