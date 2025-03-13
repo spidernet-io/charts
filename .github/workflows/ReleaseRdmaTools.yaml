@@ -11,7 +11,7 @@ env:
 on:
   workflow_dispatch:
     inputs:
-      ref:
+      tag:
         description: 'compile the chart based on the sha or branch of code'
         required: true
         default: main

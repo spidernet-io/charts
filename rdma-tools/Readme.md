@@ -31,7 +31,9 @@ cat <<EOF > values.yaml
 # for china user , it could add these to use a domestic registry
 image:
   registry: ghcr.m.daocloud.io
-  # use light image without nccl and cuda
+  # the default tag is for cuda and nccl, the image is 3G
+  #tag: v1.0.0
+  # the light tag does not include nccl and cuda, the image is 160 M
   #tag: light-v1.0.0
 
 # just run daemonset in nodes 'worker1' and 'worker2'
@@ -96,7 +98,7 @@ os: ubuntu22.04
 
 2. 运行 testPing， 确认延时和丢包，确认三层连通性
 
-3. 使用 testRdmaPair， 两两组件之间进行 同轨 RDMA 打流，
+3. 使用 testRdmaPairBw ， 两两组件之间进行 同轨 RDMA 打流，
    一方面，确认 rdma 跑到多少吞吐
    一方面，确认 qos 生效
    一方面，查看 grafana 面板， 确认 workload 中网卡是否有乱序 ； 确认所属 node 的 pf 上是否有 qos buffer 丢包，是否有 pfc pause 帧
@@ -104,3 +106,6 @@ os: ubuntu22.04
 4. 测试 跨轨打流，以测试 spine 和 leaf 交换机的 负载均衡 性能 
 
 5. 针对 GDR: 使用 grd 同轨 所有卡并行 打流，确认吞吐正常，本地没有硬件瓶颈
+
+6. 使用 testRdmaPairLatency 测试延时 
+
