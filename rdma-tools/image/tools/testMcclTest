@@ -35,10 +35,6 @@ DEFAULT_ROUTE_NIC=$(GetDefaultGatewayNic)
 [ -z "$DEFAULT_ROUTE_NIC" ] && echo "error, no found the default route nic" && exit 1
 echo "DEFAULT_ROUTE_NIC: ${DEFAULT_ROUTE_NIC}"
 
-MACA_PATH=${MACA_PATH:-"/opt/maca"}
-LD_LIBRARY_PATH=${MACA_PATH}/lib:${MACA_PATH}/ompi/lib
-BENCH_NAME=${MACA_PATH}/samples/mccl_tests/perf/tests/all_reduce_perf
-OPAL_PREFIX=/opt/maca/ompi/
 # todo: for infiniband , test sharp: -x NCCL_COLLNET_ENABLE=1  -x NCCL_ALGO=CollNet
 
 # format like:

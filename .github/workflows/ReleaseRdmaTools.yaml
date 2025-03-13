@@ -64,7 +64,7 @@ jobs:
           [ -n "${image_tag}" ] || { echo "error, failed to get image_tag from commit id"; exit 1 ; }
           echo "image_tag=${image_tag}" >> $GITHUB_OUTPUT
 
-  call-image-workflow:
+  call-image-nccl-workflow:
     needs: [get_info]
     uses: ./.github/workflows/callBuildImage.yaml
     with:
@@ -76,6 +76,22 @@ jobs:
       upload_artifact: false
       image_tag: ${{ needs.get_info.outputs.image_tag }}
       generateDockerfileScript: ${{ needs.get_info.outputs.generateDockerfileScript }}
+      nccl_base: true
+    secrets: inherit
+
+  call-image-light-workflow:
+    needs: [get_info]
+    uses: ./.github/workflows/callBuildImage.yaml
+    with:
+      code_sha: ${{ needs.get_info.outputs.code_sha }}
+      push_image: true
+      image_name: ${{ needs.get_info.outputs.image_name }}
+      dockerfile_dirctory: ${{ needs.get_info.outputs.dockerfile_dirctory }}
+      build_platform: ${{ needs.get_info.outputs.build_platform }}
+      upload_artifact: false
+      image_tag: light-${{ needs.get_info.outputs.image_tag }}
+      generateDockerfileScript: ${{ needs.get_info.outputs.generateDockerfileScript }}
+      nccl_base: false
     secrets: inherit
 
   call-chart-workflow:

@@ -33,6 +33,10 @@ on:
       generateDockerfileScript:
         required: false
         type: string
+      nccl_base:
+        required: false
+        default: false
+        type: boolean
     outputs:
       imageArtifactName:
         description: "image Artifact Name"
@@ -124,7 +128,7 @@ jobs:
               SCRIPT_NAME=$( basename ${GENERATE_SCRIPT_PATH} )
               cd ${DIR_PATH}
               chmod +x ${SCRIPT_NAME}
-              ./${SCRIPT_NAME}              
+              VAR_NCCL_BASE="${{ inputs.nccl_base }}"  ./${SCRIPT_NAME}              
           fi
 
       - name: Login to online register

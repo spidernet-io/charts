@@ -3,7 +3,7 @@
 
 #============= build tools============
 
-FROM <<ENV_CUDA_DEV_IMAGE_NAME>> as buildtools
+FROM <<ENV_BUILD_TOOLS_IMAGE_NAME>> as buildtools
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
@@ -32,7 +32,7 @@ RUN chmod +x /install-tcpdump.sh && /install-tcpdump.sh
 ENV ENV_DOWNLOAD_HPCX_URL=<<ENV_DOWNLOAD_HPCX_URL>>
 ENV ENV_VERSION_NCCLTEST=<<ENV_VERSION_NCCLTEST>>
 COPY /install-hpcx.sh /install-hpcx.sh
-RUN chmod +x /install-hpcx.sh && /install-hpcx.sh
+RUN [ "<<ENV_INSTALL_HPCX>>" == "true" ] && chmod +x /install-hpcx.sh && /install-hpcx.sh
 
 #========== root image ==============
 FROM <<ENV_BASEIMAGE_FULL_NAME>> as rootfs
@@ -57,6 +57,7 @@ ENV OMPI_ALLOW_RUN_AS_ROOT=1
 ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
 COPY /install-tools.sh /install-tools.sh
+COPY /install-tools.sh /install-nccl.sh
 COPY /test.sh /test.sh
 COPY /tools /tools
 COPY /printpaths.sh /printpaths.sh
@@ -81,6 +82,7 @@ COPY --from=buildtools /usr/local/bin/tcpdump  /usr/bin/tcpdump
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
 RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
+RUN [ "<<ENV_INSTALL_HPCX>>" == "true" ] &&  chmod +x /install-nccl.sh && /install-nccl.sh && rm -f /install-nccl.sh
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
 
@@ -119,8 +121,6 @@ ENV ENV_BASEIMAGE_OS_VERISON=<<ENV_BASEIMAGE_OS_VERISON>>
 ENV ENV_VERSION_PERFTEST=<<ENV_VERSION_PERFTEST>>
 ENV ENV_VERSION_NCCLTEST=<<ENV_VERSION_NCCLTEST>>
 ENV ENV_VERSION_HPCX=<<ENV_VERSION_HPCX>>
-
-
 
 RUN chmod +x /entry.sh
 CMD ["/entry.sh"]

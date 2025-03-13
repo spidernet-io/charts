@@ -29,24 +29,25 @@ helm search repo rdma-tools
 # run daemonset on worker1 and worker2 
 cat <<EOF > values.yaml
 # for china user , it could add these to use a domestic registry
-#image:
-#  registry: ghcr.m.daocloud.io
- 
+image:
+  registry: ghcr.m.daocloud.io
+  # use light image without nccl and cuda
+  #tag: light-v1.0.0
+
 # just run daemonset in nodes 'worker1' and 'worker2'
-affinity:
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-        - matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-              - worker1
-              - worker2
+# affinity:
+#   nodeAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       nodeSelectorTerms:
+#         - matchExpressions:
+#           - key: kubernetes.io/hostname
+#             operator: In
+#             values:
+#               - worker1
+#               - worker2
 
 # sriov interfaces
 extraAnnotations:
-  v1.multus-cni.io/default-network: spiderpool/calico
   k8s.v1.cni.cncf.io/networks: |-
       [{"name":"gpu1-sriov","namespace":"spiderpool"},
        {"name":"gpu2-sriov","namespace":"spiderpool"}]
@@ -61,11 +62,11 @@ resources:
 #hostnetwork: false
 #ssh_port: 2022
 
-#securityContext:
-#  # required by gdrcopy test or hostnetwork
-#  privileged: true
-#  capabilities:
-#    add: [ "IPC_LOCK" ]
+securityContext:
+  # required by gdrcopy test or hostnetwork
+  privileged: true
+  capabilities:
+    add: [ "IPC_LOCK" ]
 EOF
 
 # for China user, add `--set image.registry=ghcr.m.daocloud.io`
@@ -88,3 +89,18 @@ os: ubuntu22.04
 | Bandwidthtest | v12.5                                    | 2024.7.30    |
 | nvbandwidth   | v0.5                                     | 2024.8.14    |
 | tcpdump       | 4.99.5                                   | 2025.2.27    |
+
+## 最佳实践
+
+1. 运行 testArping ， 确认 是否有 IP 冲突或者 arp 代理 ，确认 arp 延时响应是否高 ，是否有丢包。以确认 arp 问题，确认 物理链路问题（可能光纤有问题）
+
+2. 运行 testPing， 确认延时和丢包，确认三层连通性
+
+3. 使用 testRdmaPair， 两两组件之间进行 同轨 RDMA 打流，
+   一方面，确认 rdma 跑到多少吞吐
+   一方面，确认 qos 生效
+   一方面，查看 grafana 面板， 确认 workload 中网卡是否有乱序 ； 确认所属 node 的 pf 上是否有 qos buffer 丢包，是否有 pfc pause 帧
+
+4. 测试 跨轨打流，以测试 spine 和 leaf 交换机的 负载均衡 性能 
+
+5. 针对 GDR: 使用 grd 同轨 所有卡并行 打流，确认吞吐正常，本地没有硬件瓶颈
