@@ -9,8 +9,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-rm -rf /buildGdrcopy || true
-mkdir /buildGdrcopy
 
 if [ "${ENV_INSTALL_HPCX}" == "false" ] ; then
     exit 0

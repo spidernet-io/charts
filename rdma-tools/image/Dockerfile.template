@@ -15,6 +15,13 @@ ENV ENV_VERSION_CUDA_SAMPLE=<<ENV_VERSION_CUDA_SAMPLE>>
 ENV ENV_GDRCOPY_COMMIT=<<ENV_GDRCOPY_COMMIT>>
 ENV ENV_VERSION_NVBANDWIDTH=<<ENV_VERSION_NVBANDWIDTH>>
 
+# make fake directory when ENV_INSTALL_HPCX=false
+RUN mkdir /opt/hpcx || true 
+RUN mkdir /buildGdrcopy || true 
+RUN mkdir /buildNvbandwidth || true 
+RUN mkdir /buildCudaSample || true 
+RUN mkdir /buildnccltest || true 
+
 # build perftest
 # Mellanox OFED (latest): required by perftest
 #fix warning: debconf: delaying package configuration, since apt-utils is not installed
@@ -33,6 +40,7 @@ ENV ENV_DOWNLOAD_HPCX_URL=<<ENV_DOWNLOAD_HPCX_URL>>
 ENV ENV_VERSION_NCCLTEST=<<ENV_VERSION_NCCLTEST>>
 COPY /install-hpcx.sh /install-hpcx.sh
 RUN chmod +x /install-hpcx.sh && export ENV_INSTALL_HPCX=<<ENV_INSTALL_HPCX>> && /install-hpcx.sh
+
 
 #========== root image ==============
 FROM <<ENV_BASEIMAGE_FULL_NAME>> as rootfs
