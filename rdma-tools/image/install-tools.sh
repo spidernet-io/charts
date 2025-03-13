@@ -82,6 +82,7 @@ packages=(
   libltdl7
   libnuma1
   psmisc
+  gnupg2
 )
 
 export DEBIAN_FRONTEND=noninteractive
@@ -92,8 +93,9 @@ apt-get install -y --no-install-recommends wget
 # to avoid interactive prompt when it is being installed
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
-InstallOfedRepo
+
 apt-get install -y --no-install-recommends "${packages[@]}"
+InstallOfedRepo
 InstallSSH
 InstallGdrCopy
 
