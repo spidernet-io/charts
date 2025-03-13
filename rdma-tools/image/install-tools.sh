@@ -117,7 +117,7 @@ InstallOfedRepo() {
   echo "${MELLANOX_PUBLIC_KEY}" | apt-key add -
 
   cd /etc/apt/sources.list.d/
-  wget ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
+  wget --no-check-certificate ${ENV_DOWNLOAD_OFED_DEB_SOURCE}
   apt-get update
 
   for ITEM in "infiniband-diags" "rdmacm-utils" "ibverbs-utils"; do
