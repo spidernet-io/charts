@@ -84,14 +84,14 @@ jobs:
     needs: [get_nccl_info]
     uses: ./.github/workflows/callBuildImage.yaml
     with:
-      code_sha: ${{ needs.get_info.outputs.code_sha }}
-      push_image: ${{ needs.get_info.outputs.push_image }}
-      image_name: ${{ needs.get_info.outputs.image_name }}
-      dockerfile_dirctory: ${{ needs.get_info.outputs.dockerfile_dirctory }}
-      build_platform: ${{ needs.get_info.outputs.build_platform }}
-      upload_artifact: ${{ needs.get_info.outputs.upload_artifact }}
-      image_tag: ${{ needs.get_info.outputs.image_tag }}
-      generateDockerfileCmd: "VAR_NCCL_BASE=true ${{ needs.get_info.outputs.generateDockerfileScript }}"
+      code_sha: ${{ needs.get_nccl_info.outputs.code_sha }}
+      push_image: ${{ needs.get_nccl_info.outputs.push_image }}
+      image_name: ${{ needs.get_nccl_info.outputs.image_name }}
+      dockerfile_dirctory: ${{ needs.get_nccl_info.outputs.dockerfile_dirctory }}
+      build_platform: ${{ needs.get_nccl_info.outputs.build_platform }}
+      upload_artifact: ${{ needs.get_nccl_info.outputs.upload_artifact }}
+      image_tag: ${{ needs.get_nccl_info.outputs.image_tag }}
+      generateDockerfileCmd: "VAR_NCCL_BASE=true ${{ needs.get_nccl_info.outputs.generateDockerfileScript }}"
     secrets: inherit
 
   get_light_info:
