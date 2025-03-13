@@ -32,7 +32,7 @@ RUN chmod +x /install-tcpdump.sh && /install-tcpdump.sh
 ENV ENV_DOWNLOAD_HPCX_URL=<<ENV_DOWNLOAD_HPCX_URL>>
 ENV ENV_VERSION_NCCLTEST=<<ENV_VERSION_NCCLTEST>>
 COPY /install-hpcx.sh /install-hpcx.sh
-RUN [ "<<ENV_INSTALL_HPCX>>" == "true" ] && chmod +x /install-hpcx.sh && /install-hpcx.sh
+RUN [ "<<ENV_INSTALL_HPCX>>" == "false" ] || { chmod +x /install-hpcx.sh && /install-hpcx.sh ; }
 
 #========== root image ==============
 FROM <<ENV_BASEIMAGE_FULL_NAME>> as rootfs
@@ -82,7 +82,7 @@ COPY --from=buildtools /usr/local/bin/tcpdump  /usr/bin/tcpdump
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools
 RUN chmod +x /install-tools.sh && /install-tools.sh && rm -f /install-tools.sh
-RUN [ "<<ENV_INSTALL_HPCX>>" == "true" ] &&  chmod +x /install-nccl.sh && /install-nccl.sh && rm -f /install-nccl.sh
+RUN [ "<<ENV_INSTALL_HPCX>>" == "false" ] || { chmod +x /install-nccl.sh && /install-nccl.sh && rm -f /install-nccl.sh ; }
 # check binary
 RUN chmod +x /test.sh && /test.sh && rm -f /test.sh
 
