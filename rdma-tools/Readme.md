@@ -126,24 +126,24 @@ os: ubuntu22.04
 
 ```bash
 # Using curl with IPv4 to visit http server
-curl -4 http://<ip>:80/
+curl -4 http://172.26.85.103
 
 # Using curl with IPv6 to visit http server
-curl -6 http://<ip>:80/
+curl -6 http://[fc26::8589]
 
 ```
 
 ```bash
 # Using netcat
-echo "Hello" | nc -u <ip> 80
+echo "Hello" | nc -u 172.26.85.103 80
 
 # Using socat with IPv4
-echo "Hello" | socat - UDP4:<ip>:80
+echo "Hello" | socat - UDP4:172.26.85.103:80
 
 # Using socat with IPv6
-echo "Hello" | socat - UDP6:[::1]:80
+echo "Hello" | socat - UDP6:[fc26::8589]:80
 
 # Using ncat (part of nmap)
-echo "Hello" | ncat -u localhost 80
+echo "Hello" | ncat -u 172.26.85.103 80
 ```
 
