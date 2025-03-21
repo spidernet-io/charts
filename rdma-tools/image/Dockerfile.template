@@ -10,7 +10,7 @@ COPY /server /server
 
 WORKDIR /server
 # Build the application with static linking
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /server/echo-server .
+RUN cd /server && go build -o echo-server ./main.go
 
 
 #============= build tools============
