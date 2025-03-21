@@ -1,6 +1,18 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
+#============= build server ============
+
+FROM golang:1.24.1 as buildserver 
+
+# Copy the Go module files
+COPY /server /server
+
+WORKDIR /server
+# Build the application with static linking
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /server/echo-server .
+
+
 #============= build tools============
 
 FROM <<ENV_BUILD_TOOLS_IMAGE_NAME>> as buildtools
@@ -85,6 +97,8 @@ COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
 COPY --from=buildtools /buildNvbandwidth/*     /usr/bin/
 COPY --from=buildtools /usr/local/bin/tcpdump  /usr/bin/tcpdump
+
+COPY --from=buildserver /server/echo-server  /usr/bin/
 
 WORKDIR /
 RUN chmod +x /tools/* && mv /tools/* /usr/sbin && rm -rf /tools

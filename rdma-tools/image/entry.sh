@@ -3,6 +3,7 @@
 # Copyright 2024 Authors of spidernet-io
 # SPDX-License-Identifier: Apache-2.0
 
+
 source /usr/sbin/rdmatools
 
 
@@ -92,7 +93,13 @@ for COMMAND in ${COMMAND_LIST} ; do
     echo ""
 done
 
-echo "======================== wait looply.... ============================="
 touch /tmp/ready
-/usr/bin/sleep infinity
 
+ENV_ECHO_SERVER_PORT=${ENV_ECHO_SERVER_PORT:-"80"}
+echo "run echo server on port ${ENV_ECHO_SERVER_PORT}"
+( 
+    echo-server --http-port ${ENV_ECHO_SERVER_PORT} --udp-port ${ENV_ECHO_SERVER_PORT}
+)&
+
+echo "======================== wait looply.... ============================="
+/usr/bin/sleep infinity
