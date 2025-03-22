@@ -14,10 +14,18 @@ import (
 	"time"
 )
 
+// Environment variable constants
+const (
+	ENV_LOCAL_NODE_NAME = "ENV_LOCAL_NODE_NAME"
+	ENV_LOCAL_NODE_IP   = "ENV_LOCAL_NODE_IP"
+)
+
 // Global counter for tracking requests
 var (
 	httpCounter uint64
 	udpCounter  uint64
+	localNodeName string
+	localNodeIP   string
 )
 
 // Response represents the structure of the response
@@ -32,12 +40,20 @@ type Response struct {
 	Protocol        string            `json:"protocol,omitempty"` // IPv4 or IPv6
 	ServerTime      string            `json:"server_time"`        // Server timestamp
 	ServerHostname  string            `json:"server_hostname"`    // Server hostname
+	LocalNodeName   string            `json:"server_node_name"`    // Kubernetes node name
+	LocalNodeIP     string            `json:"server_node_ip"`      // Kubernetes node IP
 }
 
 func main() {
 	// Configure logging
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.SetOutput(os.Stdout)
+
+	// Read environment variables
+	localNodeName = os.Getenv(ENV_LOCAL_NODE_NAME)
+	localNodeIP = os.Getenv(ENV_LOCAL_NODE_IP)
+	
+	log.Printf("[MAIN] Local node name: %s, Local node IP: %s", localNodeName, localNodeIP)
 
 	// Parse command line flags
 	httpPort := flag.Int("http-port", 80, "HTTP server port")
@@ -151,6 +167,8 @@ func startHTTPServer(port int) error {
 			Protocol:        protocol,
 			ServerTime:      time.Now().Format(time.RFC3339),
 			ServerHostname:  hostname,
+			LocalNodeName:   localNodeName,
+			LocalNodeIP:     localNodeIP,
 		}
 
 		// Marshal to JSON
@@ -290,6 +308,8 @@ func startUDPServerForProtocol(port int, network string) error {
 			Protocol:        protocolName,
 			ServerTime:      time.Now().Format(time.RFC3339),
 			ServerHostname:  hostname,
+			LocalNodeName:   localNodeName,
+			LocalNodeIP:     localNodeIP,
 		}
 
 		// Marshal to JSON
