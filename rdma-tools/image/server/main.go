@@ -7,15 +7,25 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
+)
+
+// Environment variable constants
+const (
+	ENV_LOCAL_NODE_NAME = "ENV_LOCAL_NODE_NAME"
+	ENV_LOCAL_NODE_IP   = "ENV_LOCAL_NODE_IP"
 )
 
 // Global counter for tracking requests
 var (
 	httpCounter uint64
 	udpCounter  uint64
+	localNodeName string
+	localNodeIP   string
 )
 
 // Response represents the structure of the response
@@ -28,15 +38,32 @@ type Response struct {
 	Message         string            `json:"message,omitempty"`
 	Headers         map[string]string `json:"headers,omitempty"`
 	Protocol        string            `json:"protocol,omitempty"` // IPv4 or IPv6
+	ServerTime      string            `json:"server_time"`        // Server timestamp
+	ServerHostname  string            `json:"server_hostname"`    // Server hostname
+	LocalNodeName   string            `json:"server_node_name"`    // Kubernetes node name
+	LocalNodeIP     string            `json:"server_node_ip"`      // Kubernetes node IP
 }
 
 func main() {
+	// Configure logging
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	log.SetOutput(os.Stdout)
+
+	// Read environment variables
+	localNodeName = os.Getenv(ENV_LOCAL_NODE_NAME)
+	localNodeIP = os.Getenv(ENV_LOCAL_NODE_IP)
+	
+	log.Printf("[MAIN] Local node name: %s, Local node IP: %s", localNodeName, localNodeIP)
+
 	// Parse command line flags
 	httpPort := flag.Int("http-port", 80, "HTTP server port")
 	udpPort := flag.Int("udp-port", 80, "UDP server port")
 	flag.Parse()
 
-	log.Printf("Starting echo servers - HTTP on port %d, UDP on port %d", *httpPort, *udpPort)
+	log.Printf("[MAIN] Starting echo servers - HTTP on port %d, UDP on port %d", *httpPort, *udpPort)
+
+	// Print network interfaces for debugging
+	printNetworkInterfaces()
 
 	// Start servers in separate goroutines
 	var wg sync.WaitGroup
@@ -46,7 +73,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := startHTTPServer(*httpPort); err != nil {
-			log.Fatalf("HTTP server error: %v", err)
+			log.Fatalf("[MAIN] HTTP server error: %v", err)
 		}
 	}()
 
@@ -54,20 +81,61 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := startUDPServer(*udpPort); err != nil {
-			log.Fatalf("UDP server error: %v", err)
+			log.Fatalf("[MAIN] UDP server error: %v", err)
 		}
 	}()
 
 	wg.Wait()
 }
 
+// printNetworkInterfaces logs all available network interfaces and their addresses
+func printNetworkInterfaces() {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		log.Printf("[DEBUG] Error getting network interfaces: %v", err)
+		return
+	}
+
+	log.Printf("[DEBUG] Available network interfaces:")
+	for _, iface := range interfaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			log.Printf("[DEBUG]   Error getting addresses for interface %s: %v", iface.Name, err)
+			continue
+		}
+
+		addrStrings := make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			addrStrings = append(addrStrings, addr.String())
+		}
+		log.Printf("[DEBUG]   %s (index: %d, flags: %v): %v", 
+			iface.Name, iface.Index, iface.Flags, strings.Join(addrStrings, ", "))
+	}
+}
+
 // startHTTPServer initializes and starts the HTTP server
 func startHTTPServer(port int) error {
 	// Define the handler for all incoming requests
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Get hostname
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = "unknown"
+		}
+
 		// Increment counter
 		counter := atomic.AddUint64(&httpCounter, 1)
-		log.Printf("[HTTP] Received request #%d from %s to %s", counter, r.RemoteAddr, r.Host)
+		log.Printf("[HTTP] Received request #%d from %s to %s %s", counter, r.RemoteAddr, r.Host, r.URL.Path)
+
+		// Log request details for debugging
+		log.Printf("[HTTP] Request details: Method=%s, Proto=%s, ContentLength=%d", 
+			r.Method, r.Proto, r.ContentLength)
+		
+		// Log all headers for debugging
+		log.Printf("[HTTP] Request headers:")
+		for name, values := range r.Header {
+			log.Printf("[HTTP]   %s: %s", name, strings.Join(values, ", "))
+		}
 
 		// Extract IP and port information
 		sourceIP, sourcePort := extractIPAndPort(r.RemoteAddr)
@@ -78,6 +146,9 @@ func startHTTPServer(port int) error {
 		if strings.Contains(sourceIP, ":") {
 			protocol = "IPv6"
 		}
+
+		log.Printf("[HTTP] Connection details: Source=%s:%s (%s), Destination=%s:%s", 
+			sourceIP, sourcePort, protocol, destIP, destPort)
 
 		// Create a map for headers
 		headers := make(map[string]string)
@@ -94,6 +165,10 @@ func startHTTPServer(port int) error {
 			Counter:         counter,
 			Headers:         headers,
 			Protocol:        protocol,
+			ServerTime:      time.Now().Format(time.RFC3339),
+			ServerHostname:  hostname,
+			LocalNodeName:   localNodeName,
+			LocalNodeIP:     localNodeIP,
 		}
 
 		// Marshal to JSON
@@ -106,16 +181,26 @@ func startHTTPServer(port int) error {
 
 		// Send response
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Connection", "close") // Ensure connection is closed after response
 		w.WriteHeader(http.StatusOK)
-		w.Write(jsonResponse)
+		_, err = w.Write(jsonResponse)
+		if err != nil {
+			log.Printf("[HTTP] Error writing response: %v", err)
+		}
 
 		log.Printf("[HTTP] Sent response #%d to %s", counter, r.RemoteAddr)
 	})
 
 	// Start the server on all interfaces for both IPv4 and IPv6
 	addr := fmt.Sprintf(":%d", port)
+	
+	// Create custom server with timeouts
 	server := &http.Server{
-		Addr: addr,
+		Addr:              addr,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 	
 	log.Printf("[HTTP] Server listening on %s (IPv4 and IPv6)", addr)
@@ -206,6 +291,12 @@ func startUDPServerForProtocol(port int, network string) error {
 		destIP := localAddr.IP.String()
 		destPort := localAddr.Port
 
+		// Get hostname
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = "unknown"
+		}
+
 		// Create response
 		response := Response{
 			SourceIP:        sourceIP,
@@ -215,6 +306,10 @@ func startUDPServerForProtocol(port int, network string) error {
 			Counter:         counter,
 			Message:         string(buffer[:n]),
 			Protocol:        protocolName,
+			ServerTime:      time.Now().Format(time.RFC3339),
+			ServerHostname:  hostname,
+			LocalNodeName:   localNodeName,
+			LocalNodeIP:     localNodeIP,
 		}
 
 		// Marshal to JSON
