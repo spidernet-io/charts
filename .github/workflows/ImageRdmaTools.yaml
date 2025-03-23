@@ -40,6 +40,7 @@ jobs:
       image_name: ${{ env.image_name }}
       dockerfile_dirctory: ${{ env.dockerfile_dirctory }}
       generateDockerfileScript: ${{ env.generateDockerfileScript }}
+      build_latest: ${{ env.build_latest }}
     steps:
       - name: get information
         run: |
@@ -53,15 +54,18 @@ jobs:
             echo "call by workflow_dispatch"
             echo "code_sha=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
+            echo "build_latest=false" >> $GITHUB_ENV
           elif ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
             echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
+            echo "build_latest=true" >> $GITHUB_ENV
           else
             echo "call by PR"
             echo "use sha ${{ github.event.pull_request.head.sha }} , by pr"
             echo "code_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
             echo "push_image=false" >> $GITHUB_ENV
+            echo "build_latest=false" >> $GITHUB_ENV
           fi
 
       - name: Checkout Source Code
@@ -81,6 +85,21 @@ jobs:
           echo "image_tag=${image_tag}" >> $GITHUB_ENV
 
   call-nccl-workflow:
+    needs: [get_nccl_info]
+    uses: ./.github/workflows/callBuildImage.yaml
+    if: ${{ needs.get_nccl_info.outputs.build_latest == 'true' }}
+    with:
+      code_sha: ${{ needs.get_nccl_info.outputs.code_sha }}
+      push_image: ${{ needs.get_nccl_info.outputs.push_image }}
+      image_name: ${{ needs.get_nccl_info.outputs.image_name }}
+      dockerfile_dirctory: ${{ needs.get_nccl_info.outputs.dockerfile_dirctory }}
+      build_platform: ${{ needs.get_nccl_info.outputs.build_platform }}
+      upload_artifact: ${{ needs.get_nccl_info.outputs.upload_artifact }}
+      image_tag: latest
+      generateDockerfileCmd: "VAR_NCCL_BASE=true ${{ needs.get_nccl_info.outputs.generateDockerfileScript }}"
+    secrets: inherit
+
+  call-nccl-latest-workflow:
     needs: [get_nccl_info]
     uses: ./.github/workflows/callBuildImage.yaml
     with:
@@ -104,6 +123,7 @@ jobs:
       image_tag: ${{ env.image_tag }}
       image_name: ${{ env.image_name }}
       dockerfile_dirctory: ${{ env.dockerfile_dirctory }}
+      build_latest: ${{ env.build_latest }}
       generateDockerfileScript: ${{ env.generateDockerfileScript }}
     steps:
       - name: get information
@@ -118,15 +138,18 @@ jobs:
             echo "call by workflow_dispatch"
             echo "code_sha=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
+            echo "build_latest=false" >> $GITHUB_ENV
           elif ${{ github.event_name == 'push' }} ; then
             echo "call by push tag"
             echo "code_sha=${GITHUB_REF##*/}" >> $GITHUB_ENV
             echo "push_image=true" >> $GITHUB_ENV
+            echo "build_latest=true" >> $GITHUB_ENV
           else
             echo "call by PR"
             echo "use sha ${{ github.event.pull_request.head.sha }} , by pr"
             echo "code_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
             echo "push_image=false" >> $GITHUB_ENV
+            echo "build_latest=false" >> $GITHUB_ENV
           fi
 
       - name: Checkout Source Code
@@ -156,5 +179,20 @@ jobs:
       build_platform: ${{ needs.get_light_info.outputs.build_platform }}
       upload_artifact: ${{ needs.get_light_info.outputs.upload_artifact }}
       image_tag: ${{ needs.get_light_info.outputs.image_tag }}
+      generateDockerfileCmd: "VAR_NCCL_BASE=false ${{ needs.get_light_info.outputs.generateDockerfileScript }}"
+    secrets: inherit
+
+  call-light-latest-workflow:
+    needs: [get_light_info]
+    uses: ./.github/workflows/callBuildImage.yaml
+    if: ${{ needs.get_light_info.outputs.build_latest == 'true' }}
+    with:
+      code_sha: ${{ needs.get_light_info.outputs.code_sha }}
+      push_image: ${{ needs.get_light_info.outputs.push_image }}
+      image_name: ${{ needs.get_light_info.outputs.image_name }}
+      dockerfile_dirctory: ${{ needs.get_light_info.outputs.dockerfile_dirctory }}
+      build_platform: ${{ needs.get_light_info.outputs.build_platform }}
+      upload_artifact: ${{ needs.get_light_info.outputs.upload_artifact }}
+      image_tag: latest
       generateDockerfileCmd: "VAR_NCCL_BASE=false ${{ needs.get_light_info.outputs.generateDockerfileScript }}"
     secrets: inherit
