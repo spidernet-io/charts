@@ -193,6 +193,6 @@ jobs:
       dockerfile_dirctory: ${{ needs.get_light_info.outputs.dockerfile_dirctory }}
       build_platform: ${{ needs.get_light_info.outputs.build_platform }}
       upload_artifact: ${{ needs.get_light_info.outputs.upload_artifact }}
-      image_tag: latest
+      image_tag: light-latest
       generateDockerfileCmd: "VAR_NCCL_BASE=false ${{ needs.get_light_info.outputs.generateDockerfileScript }}"
     secrets: inherit
