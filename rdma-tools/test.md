@@ -41,7 +41,7 @@
     (2) 使用 testRdmaPairLatency ,  只测试 两台主机的 跨轨 延时，  覆盖测试 spine 和 leaf 的所有链路 
         ASYNCHRONOUS=false,  SAME_NETWORK_TRACK=true, DURATION=20
 
-6. 测试 GDR 性能: 开启 GDR 下，做 testRdmaPairBw 的同轨测试， 
+6. 测试 GDR 性能: 开启 GDR 下，做 testRdmaPairBw 的同轨测试 ( 目前 ，testRdmaPairBw 需要 适配下，检测网卡和GPU的亲和关系，然后 带上 --use_cuda=序号  的参数 )
 
     （1） ASYNCHRONOUS=true,  SAME_NETWORK_TRACK=true, DURATION=180
 
