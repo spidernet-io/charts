@@ -417,7 +417,7 @@ RDMAStatisticSummary(){
         LINE_NUM=1
         while read line; do
             DEVICE_NAME=$( grep -oE "link [^[:space:]]+" <<< "${line}" | awk '{print $2}' )
-            OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '${print $2}' )
+            OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '{print $2}' )
             NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new )
 
             FLAG="ok"
