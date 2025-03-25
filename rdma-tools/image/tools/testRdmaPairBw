@@ -405,10 +405,7 @@ RecordRDMAStatistic(){
 
 RDMAStatisticSummary(){
 
-    echo "=========================== show rdma statistic ==========================="
-
     for POD in ${POD_IP_LIST} ; do
-        echo ""
         printf "_____________________________________________________________________________________________________________________________________________\n" 
         printf "rdma statistic on pod ${POD}\n" 
         printf "%-40s\t%-40s\t%-40s\t%-40s\t%-40s\n" "deviceName" "result" "out_of_sequence before/after" "cnp_sent before/after" "out_of_buffer before/after"
@@ -498,7 +495,7 @@ RecordRDMAStatistic "new"
 
 echo ""
 echo ""
-echo "========================================== summary report ============================================================="
+echo "========================================== summary bandwidth report ============================================================="
 echo ""
 echo "------------------ ${CURRENT_FILENAME} summary from ${RESULT_DIR}-------------------------"
 echo ""
@@ -508,5 +505,9 @@ for FILE_NAME in ${FILE_LIST}; do
     echo ""
 done
 
+echo ""
+echo ""
+echo "========================================== summary about out of sequence  ============================================================="
+echo ""
 RDMAStatisticSummary
 
