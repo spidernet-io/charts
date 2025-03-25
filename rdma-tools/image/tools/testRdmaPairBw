@@ -421,7 +421,7 @@ RDMAStatisticSummary(){
             NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new )
 
             FLAG="ok"
-            if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) && (( NEW_OUT_OF_SEQUENCE != 0 )) ; then
+            if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) ; then
                 FLAG="fail"
             fi
 
