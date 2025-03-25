@@ -33,11 +33,13 @@
   （3）全部主机一起，做 testRdmaPairBw 跨轨 ， 确认 spine 和 leaf 在拥塞过程中的 表现
         ASYNCHRONOUS=false,  SAME_NETWORK_TRACK=false, DURATION=180
 
-5. 使用 testRdmaPairLatency 测试 同轨 和 跨轨 延时 （目前 testRdmaPairBw 还没有适配 测试延时 ）
+5. 使用 testRdmaPairLatency 测试 同轨 和 跨轨 延时 
     
-    (1) 使用 testRdmaPairLatency， 测试某个主机 到 其它所有主机的 同轨延时 
+    (1) 使用 testRdmaPairLatency ,  测试 所有主机的 同轨 延时 
+        ASYNCHRONOUS=false,  SAME_NETWORK_TRACK=false, DURATION=20
 
-    (2) 手动测试 两台 机器之间 的 跨过，以覆盖 spine 和 leaf 交换机的所有 链路 
+    (2) 使用 testRdmaPairLatency ,  只测试 两台主机的 跨轨 延时，  覆盖测试 spine 和 leaf 的所有链路 
+        ASYNCHRONOUS=false,  SAME_NETWORK_TRACK=true, DURATION=20
 
 6. 测试 GDR 性能: 开启 GDR 下，做 testRdmaPairBw 的同轨测试， 
 
