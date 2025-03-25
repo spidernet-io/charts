@@ -420,7 +420,11 @@ RDMAStatisticSummary(){
             OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '{print $2}' )
             NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new )
 
-            FLAG="ok"
+            if [ -z "${OLD_OUT_OF_SEQUENCE}" ] || [ -z "${NEW_OUT_OF_SEQUENCE}" ] ; then
+                echo "error! failed to get out_of_sequence from line: ${line}"
+                continue
+            fi
+
             if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) ; then
                 FLAG="fail"
             fi
