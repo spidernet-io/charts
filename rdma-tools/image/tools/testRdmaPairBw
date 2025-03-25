@@ -393,8 +393,7 @@ RecordRDMAStatistic(){
     filename="$1"
 
     for POD in ${POD_IP_LIST} ; do
-        rm -rf ${STATISTIC_DIR}/${POD}
-        mkdir -p ${STATISTIC_DIR}/${POD}
+        mkdir -p ${STATISTIC_DIR}/${POD} || true
         echo ""
         echo "=========================== show rdma statistic on pod  ${POD}==========================="
         { ssh  -p ${ENV_SSH_PORT} ${POD} "rdma statistic" > ${STATISTIC_DIR}/${POD}/${filename}; } || true
