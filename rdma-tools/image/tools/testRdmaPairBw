@@ -412,7 +412,7 @@ RDMAStatisticSummary(){
         echo ""
         printf "_______________________________________________________________________________________________\n" 
         printf "rdma statistic on pod ${POD}\n" 
-        printf "%-40s\t%-40s\t%-40s\n" "deviceName" "out_of_sequence before" "out_of_sequence after"
+        printf "%-40s\t%-40s\t%-40s\n" "deviceName" "result" "out_of_sequence before/after"
         printf "_______________________________________________________________________________________________\n"
 
         LINE_NUM=1
@@ -421,7 +421,12 @@ RDMAStatisticSummary(){
             OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '${print $2}' )
             NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new )
 
-            printf "%-40s\t%-40s\t%-40s\n" "device ${DEVICE_NAME}" "${OLD_OUT_OF_SEQUENCE}" "${NEW_OUT_OF_SEQUENCE}"
+            FLAG="ok"
+            if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) && (( NEW_OUT_OF_SEQUENCE != 0 )) ; then
+                FLAG="fail"
+            fi
+
+            printf "%-40s\t%-40s\t%-40s\n" "device ${DEVICE_NAME}" "${FLAG}" "${OLD_OUT_OF_SEQUENCE}/${NEW_OUT_OF_SEQUENCE}"
 
             (( LINE_NUM = LINE_NUM + 1 ))
 
