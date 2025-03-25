@@ -425,6 +425,7 @@ RDMAStatisticSummary(){
                 continue
             fi
 
+            FLAG="ok"
             if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) ; then
                 FLAG="fail"
             fi
