@@ -94,6 +94,7 @@ WORKDIR="/tmp/${CURRENT_FILENAME}-$(date +%Y%m%d%H%M%S%N)"
 REMOTE_INFOR_DIR="${WORKDIR}/remoteip"
 REMOTE_OUTPUT_DIR="${WORKDIR}/output"
 TASK_FINISH_DIR="${WORKDIR}/ready"
+STATISTIC_DIR="${WORKDIR}/statistic"
 RESULT_DIR="${WORKDIR}/result"
 mkdir -p ${WORKDIR}
 mkdir -p ${REMOTE_INFOR_DIR}
@@ -101,6 +102,7 @@ mkdir -p ${RESULT_DIR}
 rm -rf ${RESULT_DIR}/*
 mkdir -p ${REMOTE_OUTPUT_DIR}
 mkdir -p ${TASK_FINISH_DIR}
+mkdir -p ${STATISTIC_DIR}
 
 echo "============== WORKDIR directory: ${WORKDIR} ===================="
 
@@ -387,6 +389,53 @@ TestRdma() {
 
 }
 
+RecordRDMAStatistic(){
+    filename="$1"
+
+    for POD in ${POD_IP_LIST} ; do
+        rm -rf ${STATISTIC_DIR}/${POD}
+        mkdir -p ${STATISTIC_DIR}/${POD}
+        echo ""
+        echo "=========================== show rdma statistic on pod  ${POD}==========================="
+        { ssh  -p ${ENV_SSH_PORT} ${POD} "rdma statistic" > ${STATISTIC_DIR}/${POD}/${filename}; } || true
+        cat ${STATISTIC_DIR}/${POD}/${filename}
+    done
+    echo ""
+
+}
+
+RDMAStatisticSummary(){
+
+    echo "=========================== show rdma statistic ==========================="
+
+    for POD in ${POD_IP_LIST} ; do
+        echo ""
+        printf "_______________________________________________________________________________________________\n" 
+        printf "rdma statistic on pod ${POD}\n" 
+        printf "%-40s\t%-40s\t%-40s\n" "deviceName" "result" "out_of_sequence before/after"
+        printf "_______________________________________________________________________________________________\n"
+
+        LINE_NUM=1
+        while read line; do
+            DEVICE_NAME=$( grep -oE "link [^[:space:]]+" <<< "${line}" | awk '{print $2}' )
+            OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '${print $2}' )
+            NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new )
+
+            FLAG="ok"
+            if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) && (( NEW_OUT_OF_SEQUENCE != 0 )) ; then
+                FLAG="fail"
+            fi
+
+            printf "%-40s\t%-40s\t%-40s\n" "device ${DEVICE_NAME}" "${FLAG}" "${OLD_OUT_OF_SEQUENCE}/${NEW_OUT_OF_SEQUENCE}"
+
+            (( LINE_NUM = LINE_NUM + 1 ))
+
+        done < ${STATISTIC_DIR}/${POD}/old
+        printf "_______________________________________________________________________________________________\n"
+        echo ""
+    done
+
+}
 
 #-------------------------
 DURATION=${DURATION:-"60"}
@@ -408,6 +457,9 @@ CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 
 echo "run ${LOOP_TIMES} times with duration ${DURATION} of ${LOOP_TIMES} round, asynchronously is ${ASYNCHRONOUS}"
+
+RecordRDMAStatistic "old"
+
 for ((ROUND_COUNTER=1;ROUND_COUNTER<=${LOOP_TIMES};ROUND_COUNTER++)); do
     echo "===================================== round ${ROUND_COUNTER} : sequential order test ===================================="
 
@@ -426,6 +478,7 @@ for ((ROUND_COUNTER=1;ROUND_COUNTER<=${LOOP_TIMES};ROUND_COUNTER++)); do
     echo ""
 done
 
+RecordRDMAStatistic "new"
 
 echo ""
 echo ""
@@ -438,3 +491,6 @@ for FILE_NAME in ${FILE_LIST}; do
     cat ${RESULT_DIR}/${FILE_NAME}
     echo ""
 done
+
+RDMAStatisticSummary
+
