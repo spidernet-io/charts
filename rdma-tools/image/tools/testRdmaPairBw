@@ -409,16 +409,24 @@ RDMAStatisticSummary(){
 
     for POD in ${POD_IP_LIST} ; do
         echo ""
-        printf "_______________________________________________________________________________________________\n" 
+        printf "_____________________________________________________________________________________________________________________________________________\n" 
         printf "rdma statistic on pod ${POD}\n" 
-        printf "%-40s\t%-40s\t%-40s\n" "deviceName" "result" "out_of_sequence before/after"
-        printf "_______________________________________________________________________________________________\n"
+        printf "%-40s\t%-40s\t%-40s\t%-40s\t%-40s\n" "deviceName" "result" "out_of_sequence before/after" "cnp_sent before/after" "out_of_buffer before/after"
+        printf "_____________________________________________________________________________________________________________________________________________\n"
 
         LINE_NUM=1
         while read line; do
             DEVICE_NAME=$( grep -oE "link [^[:space:]]+" <<< "${line}" | awk '{print $2}' )
+
             OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '{print $2}' )
-            NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new )
+            NEW_OUT_OF_SEQUENCE=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new | grep -Eo " out_of_sequence [0-9]+ " | awk '{print $2}' )
+
+            OLD_CNP_SENT=$( grep -Eo " np_cnp_sent [0-9]+ " <<< "${line}" | awk '{print $2}' )
+            NEW_CNP_SENT=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new | grep -Eo " np_cnp_sent [0-9]+ " | awk '{print $2}' )
+
+            OLD_OUT_OF_BUFFER=$( grep -Eo " out_of_buffer [0-9]+ " <<< "${line}" | awk '{print $2}' )
+            NEW_OUT_OF_BUFFER=$( sed -n "${LINE_NUM} p" ${STATISTIC_DIR}/${POD}/new | grep -Eo " out_of_buffer [0-9]+ " | awk '{print $2}' )
+
 
             if [ -z "${OLD_OUT_OF_SEQUENCE}" ] || [ -z "${NEW_OUT_OF_SEQUENCE}" ] ; then
                 echo "error! failed to get out_of_sequence from line: ${line}"
@@ -429,13 +437,16 @@ RDMAStatisticSummary(){
             if (( OLD_OUT_OF_SEQUENCE != NEW_OUT_OF_SEQUENCE )) ; then
                 FLAG="fail"
             fi
+            if (( OLD_OUT_OF_BUFFER != NEW_OUT_OF_BUFFER )) ; then
+                FLAG="fail"
+            fi
 
-            printf "%-40s\t%-40s\t%-40s\n" "device ${DEVICE_NAME}" "${FLAG}" "${OLD_OUT_OF_SEQUENCE}/${NEW_OUT_OF_SEQUENCE}"
+            printf "%-40s\t%-40s\t%-40s\t%-40s\t%-40s\n" "device ${DEVICE_NAME}" "${FLAG}" "${OLD_OUT_OF_SEQUENCE}/${NEW_OUT_OF_SEQUENCE}" "${OLD_CNP_SENT}/${NEW_CNP_SENT}" "${OLD_OUT_OF_BUFFER}/${NEW_OUT_OF_BUFFER}"
 
             (( LINE_NUM = LINE_NUM + 1 ))
 
         done < ${STATISTIC_DIR}/${POD}/old
-        printf "_______________________________________________________________________________________________\n"
+        printf "_____________________________________________________________________________________________________________________________________________\n"
         echo ""
     done
 
