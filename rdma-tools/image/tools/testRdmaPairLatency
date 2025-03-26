@@ -148,7 +148,7 @@ RunClient() {
 
     echo "" >>${RESULT_FILE}
     printf "________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
-    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "from ${REMOTE_CLIENT} ${REMOTE_CLIENT_NAME}" "to ${REMOTE_SERVER} ${REMOTE_SERVER_NAME}" "BW avg[Gb/sec]" "MsgRate[Mpps]" "maxSpeed" "sameNetworkTrack" >>${RESULT_FILE}
+    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "from ${REMOTE_CLIENT} ${REMOTE_CLIENT_NAME}" "to ${REMOTE_SERVER} ${REMOTE_SERVER_NAME}" "t_avg[usec]" "tps average" "maxSpeed" "sameNetworkTrack" >>${RESULT_FILE}
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
     REMOTE_RUN_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}/${REMOTE_SERVER}"
@@ -166,18 +166,22 @@ RunClient() {
     # reset the port
     PORT=${START_PORT}
     TASK_COUNTER=0
-    while read LINE; do
-        REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
-        REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
-        REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')
-        REMOTE_MASK=$(echo "${LINE}" | awk '{print $4}')
-        REMOTE_PROTOCOL=$(echo "${LINE}" | awk '{print $5}')
-        REMOTE_INDEX=$(echo "${LINE}" | awk '{print $6}')
+
+    mapfile -t SERVER_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_SERVER}
+    mapfile -t CLIENT_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}
+    
+    for SERVER_LINE in "${SERVER_LINES[@]}"; do
+        REMOTE_DEVICE=$(echo "${SERVER_LINE}" | awk '{print $1}')
+        REMOTE_INTERFACE=$(echo "${SERVER_LINE}" | awk '{print $2}')
+        REMOTE_IP=$(echo "${SERVER_LINE}" | awk '{print $3}')
+        REMOTE_MASK=$(echo "${SERVER_LINE}" | awk '{print $4}')
+        REMOTE_PROTOCOL=$(echo "${SERVER_LINE}" | awk '{print $5}')
+        REMOTE_INDEX=$(echo "${SERVER_LINE}" | awk '{print $6}')
         [ -n "${REMOTE_DEVICE}" ] || continue 
 
         #OLD=$IFS
         #IFS=$'\n'
-        while read CLIENT_LINE; do
+        for CLIENT_LINE in "${CLIENT_LINES[@]}"; do
             #IFS=$OLD
             echo "* CLIENT_LINE: ${CLIENT_LINE}"
             LOCAL_DEVICE=$(echo "${CLIENT_LINE}" | awk '{print $1}')
@@ -216,10 +220,10 @@ RunClient() {
                 (
                     #{ ssh  -p ${ENV_SSH_PORT} ${REMOTE_CLIENT} "${CMD_CLI} ${OPTIONS}" | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
                     { ssh  -p ${ENV_SSH_PORT} ${REMOTE_CLIENT} "${CMD_CLI} ${OPTIONS}" > ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
-                    BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
-                    PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
-                    if [ -n "${BANDWITDH}" ]; then
-                        printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
+                    T_AVG=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "t_avg" | grep -E "[0-9\.]+" | awk '{print $3 }') || true
+                    TPS_AVERAGE=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "t_avg" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
+                    if [ -n "${T_AVG}" ]; then
+                        printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${T_AVG}" "${TPS_AVERAGE}" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
                     else
                         echo "error, ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME}( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) failed to test server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ${PORT} ) "
                         printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
@@ -230,10 +234,10 @@ RunClient() {
             else
                 #{ ssh  -p ${ENV_SSH_PORT} ${REMOTE_CLIENT} " ${CMD_CLI} ${OPTIONS}" | tee ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
                 { ssh  -p ${ENV_SSH_PORT} ${REMOTE_CLIENT} " ${CMD_CLI} ${OPTIONS}" > ${REMOTE_RUN_IP_OUTPUT_DIR}; } || true
-                BANDWITDH=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
-                PPS=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "BW average" | grep -E "[0-9\.]+" | awk '{print $5 }') || true
-                if [ -n "${BANDWITDH}" ]; then
-                    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${BANDWITDH}" "${PPS}" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
+                T_AVG=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "t_avg" | grep -E "[0-9\.]+" | awk '{print $3 }') || true
+                TPS_AVERAGE=$(cat ${REMOTE_RUN_IP_OUTPUT_DIR} | grep -A 1 "t_avg" | grep -E "[0-9\.]+" | awk '{print $4 }') || true
+                if [ -n "${T_AVG}" ]; then
+                    printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "${T_AVG}" "${TPS_AVERAGE}" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
                 else
                     echo "error, ${REMOTE_CLIENT}/${REMOTE_CLIENT_NAME}( ${LOCAL_INTERFACE} ${LOCAL_DEVICE} ${LOCAL_IP} ) failed to test server ${REMOTE_SERVER}/${REMOTE_SERVER_NAME} ( ${REMOTE_INTERFACE} ${REMOTE_DEVICE} ${REMOTE_IP} ${PORT} ) "
                     printf "%-40s\t%-40s\t%-20s%-20s%-20s%-20s\n" "${LOCAL_INTERFACE}/${LOCAL_DEVICE}/${LOCAL_IP}" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}" "0" "0" "${MAX_SPEED} ${SAME_TRACK}" >>${RESULT_FILE}
@@ -243,10 +247,10 @@ RunClient() {
             fi
             echo ""
 
-        done <${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}
+        done
 
         (( PORT = PORT + 1))
-    done <${REMOTE_INFOR_DIR}/${REMOTE_SERVER}
+    done
 
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
@@ -278,10 +282,11 @@ RunPerOnHost() {
     PORT=${START_PORT}
 
     echo "clean all server on ${REMOTE_HOST}"
-    #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` ; [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } " || true
-    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
+    #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
+    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "stopServerAlways ${CMD_CLI}" || true
 
-    while read LINE; do
+    mapfile -t REMOTE_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+    for LINE in "${REMOTE_LINES[@]}"; do
         REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
         REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
         REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')
@@ -295,13 +300,14 @@ RunPerOnHost() {
         OPTIONS+=" -p ${PORT} "
         echo "server on remote ${REMOTE_HOST} for ${REMOTE_INTERFACE} with ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
         (
-            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " >/dev/null || true
-            #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " &>/dev/null
+            #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " >/dev/null || true
+            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "runServerAlways '${CMD_CLI} ${OPTIONS}' " >/dev/null || true
+
         )&
 
         ((PORT=PORT+1))
 
-    done <${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+    done
 
 }
 
