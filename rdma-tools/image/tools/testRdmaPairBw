@@ -408,7 +408,7 @@ RDMAStatisticSummary(){
     for POD in ${POD_IP_LIST} ; do
         printf "_____________________________________________________________________________________________________________________________________________\n" 
         printf "rdma statistic on pod ${POD}\n" 
-        printf "%-40s\t%-40s\t%-40s\t%-40s\t%-40s\n" "deviceName" "result" "out_of_sequence before/after" "cnp_sent before/after" "out_of_buffer before/after"
+        printf "%-30s\t%-30s\t%-30s\t%-30s\t%-30s\n" "deviceName" "result" "out_of_sequence before/after" "out_of_buffer before/after" "cnp_sent before/after"
         printf "_____________________________________________________________________________________________________________________________________________\n"
 
         while read line; do
@@ -422,8 +422,9 @@ RDMAStatisticSummary(){
             OLD_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${line}" | awk '{print $2}' )
             NEW_OUT_OF_SEQUENCE=$( grep -Eo " out_of_sequence [0-9]+ " <<< "${NEW_LINE}" | awk '{print $2}' )
 
-            OLD_CNP_SENT=$( grep -Eo " np_cnp_sent [0-9]+ " <<< "${line}" | awk '{print $2}' )
-            NEW_CNP_SENT=$( grep -Eo " np_cnp_sent [0-9]+ " <<< "${NEW_LINE}" | awk '{print $2}' )
+            # it only exists in PF    
+            OLD_CNP_SENT=$( grep -Eo " np_cnp_sent [0-9]+ " <<< "${line}" | awk '{print $2}' ) || true
+            NEW_CNP_SENT=$( grep -Eo " np_cnp_sent [0-9]+ " <<< "${NEW_LINE}" | awk '{print $2}' ) || true
 
             OLD_OUT_OF_BUFFER=$( grep -Eo " out_of_buffer [0-9]+ " <<< "${line}" | awk '{print $2}' )
             NEW_OUT_OF_BUFFER=$( grep -Eo " out_of_buffer [0-9]+ " <<< "${NEW_LINE}" | awk '{print $2}' )
@@ -441,7 +442,7 @@ RDMAStatisticSummary(){
                 FLAG="fail"
             fi
 
-            printf "%-40s\t%-40s\t%-40s\t%-40s\t%-40s\n" "${DEVICE_NAME}" "${FLAG}" "${OLD_OUT_OF_SEQUENCE}/${NEW_OUT_OF_SEQUENCE}" "${OLD_CNP_SENT}/${NEW_CNP_SENT}" "${OLD_OUT_OF_BUFFER}/${NEW_OUT_OF_BUFFER}"
+            printf "%-30s\t%-30s\t%-30s\t%-30s\t%-30s\n" "${DEVICE_NAME}" "${FLAG}" "${OLD_OUT_OF_SEQUENCE}/${NEW_OUT_OF_SEQUENCE}" "${OLD_OUT_OF_BUFFER}/${NEW_OUT_OF_BUFFER}" "${OLD_CNP_SENT}/${NEW_CNP_SENT}"
 
         done < ${STATISTIC_DIR}/${POD}/old
         printf "_____________________________________________________________________________________________________________________________________________\n"
