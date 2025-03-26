@@ -12,7 +12,7 @@ spec:
   ports:
   - name: ssh
     port: 22
-    targetPort: 22
+    targetPort: {{ .Values.ssh_port }}
     protocol: TCP
 ---
 apiVersion: v1
