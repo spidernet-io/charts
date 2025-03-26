@@ -1,0 +1,185 @@
+#!/bin/bash
+
+# Copyright 2024 Authors of spidernet-io
+# SPDX-License-Identifier: Apache-2.0
+
+:<<EOF
+  testStatus
+EOF
+
+#set -x
+#set -o pipefail
+set -o errexit
+set -o nounset
+
+
+CURRENT_FILENAME=$( basename $0 )
+ENV_SSH_PORT=${ENV_SSH_PORT:-"2022"}
+
+PING_COUNT=${PING_COUNT:-"20"}
+
+source /usr/sbin/rdmatools
+source getAllEndpoints
+
+POD_IP_LIST=${1:-""}
+[ -n "${POD_IP_LIST}" ] || { POD_IP_LIST=$( getOtherEndpoints 2>/dev/null ) || true ; }
+[ -n "${POD_IP_LIST}" ] || { echo "error, no remote hosts " ; exit 1 ; }
+
+WORKDIR="/tmp/${CURRENT_FILENAME}-$(date +%Y%m%d%H%M%S%N)"
+REMOTE_INFOR_DIR="${WORKDIR}/remote"
+RESULT_DIR="${WORKDIR}/result"
+mkdir -p ${WORKDIR}
+mkdir -p ${REMOTE_INFOR_DIR}
+mkdir -p ${RESULT_DIR}
+
+echo "collecting local information ..."
+LOCAL_IP_INFO=$( GetUpAllIP )
+LOCAL_INT=$( ip r | grep default | head -1 | grep -oE "dev [^[:space:]]+"  | awk '{print $2}' )
+LOCAL_ENDPOINT_IP=$( ip -4 addr show ${LOCAL_INT} | grep -oP '(?<=inet\s)[0-9]+(\.[0-9]+){3}'	 )
+
+echo "collecting remote information ..."
+
+EXPECT_NUM=0
+for ADDR in ${POD_IP_LIST} ; do
+    ((EXPECT_NUM+=1))
+    (
+        echo "collecting information from ${ADDR}"
+        REMOTE_RDMA_INFO=$( ssh -p ${ENV_SSH_PORT} ${ADDR} " source /usr/sbin/rdmatools && GetLocalRdmaDeviceIP " )
+        if [ -n "${REMOTE_RDMA_INFO}" ] ; then
+              echo "${REMOTE_RDMA_INFO}" > ${REMOTE_INFOR_DIR}/${ADDR}
+        else
+              echo "error, failed to get information from remote ${ADDR}"
+        fi
+    )&
+done
+wait
+NUM=$( ls ${REMOTE_INFOR_DIR} | wc -l  )
+(( NUM == EXPECT_NUM )) || { echo "error, failed to get information from all hosts" ; exit 1 ; }
+echo "finished collectiong information"
+
+FAIL_FILE="${WORKDIR}/result-fail"
+rm -f ${FAIL_FILE} || true
+
+TestPerHost(){
+    REMOTE_HOST="${1}"
+    REMOTE_NODE_NAME=$( GetNodeName ${REMOTE_HOST} )
+
+    echo "${CURRENT_FILENAME} case: remote node ${REMOTE_HOST}  "
+    [ -f "${REMOTE_INFOR_DIR}/${REMOTE_HOST}" ] || { echo "error, failed to find ${REMOTE_INFOR_DIR}/${REMOTE_HOST} " ; exit 1 ; }
+    RESULT_FILE="${RESULT_DIR}/${REMOTE_HOST}"
+
+    echo "" >> ${RESULT_FILE}
+    printf "________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    printf "${REMOTE_HOST} ${REMOTE_NODE_NAME}\n" >> ${RESULT_FILE}
+    printf "%-40s\t%-10s\t%-10s\t%-10s\t%-10s\n" "device" "result" "status" "qos" "mtu"  >> ${RESULT_FILE}
+    printf "________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+
+    
+    echo ""
+    cat ${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+    echo ""
+
+    # 将文件内容读取到数组中，避免在循环中执行SSH命令时stdin被重定向
+    mapfile -t LINES < ${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+    
+    # 使用数组迭代而不是while read
+    for LINE in "${LINES[@]}"; do
+        echo "LINE: $LINE"
+
+        REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
+        REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
+        REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')
+        REMOTE_MASK=$(echo "${LINE}" | awk '{print $4}')
+        REMOTE_PROTOCOL=$(echo "${LINE}" | awk '{print $5}')
+        REMOTE_INDEX=$(echo "${LINE}" | awk '{print $6}')
+
+        [ -n "${REMOTE_DEVICE}" ] || continue 
+
+        # echo "REMOTE_DEVICE=${REMOTE_DEVICE}  REMOTE_INTERFACE=${REMOTE_INTERFACE}  REMOTE_IP=${REMOTE_IP}  REMOTE_MASK=${REMOTE_MASK} REMOTE_PROTOCOL=${REMOTE_PROTOCOL} REMOTE_INDEX=${REMOTE_INDEX}" 
+        # REMOTE_DEVICE=mlx5_16  REMOTE_INTERFACE=net4  REMOTE_IP=172.17.4.58  REMOTE_MASK=24 REMOTE_PROTOCOL=RoceV2 REMOTE_INDEX=3
+
+        FLAG="ok"
+
+        ALL_INFO=$( ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " rdma link " ) || FLAG="fail"
+        DEV_INFO=$( grep "${REMOTE_DEVICE}/" <<< ${ALL_INFO} )
+        DEV_STATUS="active"
+        if ! grep "state ACTIVE physical_state LINK_UP" <<< "${DEV_INFO}" &>/dev/null ; then
+            DEV_STATUS="inactive (${DEV_INFO})"
+            FLAG="fail"
+        fi
+
+        MTU_INFO=$( ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " ip link show ${REMOTE_INTERFACE} " ) || FLAG="fail"
+        MTU=$( grep -Eo " mtu [0-9]+ " <<< ${MTU_INFO} | awk '{print $2}' )
+        if [ -z "${MTU}" ] ; then
+            MTU="unknown"
+            FLAG="fail"
+        fi
+
+        QOS_FAIL=""
+        QOS_CLASS_INFO=$( ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " cat /sys/class/infiniband/${REMOTE_DEVICE}/tc/1/traffic_class  " ) || { FLAG="fail" ; QOS_FAIL="failed" ; }
+        QOS_CLASS_VALUE=$( awk -F'=' '{print $2}' <<< ${QOS_CLASS_INFO} )
+        if [ -n "${QOS_FAIL}" ] ; then
+            QOS_CLASS_VALUE="unknown"
+            FLAG="fail"
+        else
+            if [ -z "${QOS_CLASS_VALUE}" ] ; then
+                QOS_CLASS_VALUE="0"
+            else
+                QOS_CLASS_VALUE=$( awk -F'=' '{print $2}' <<< ${QOS_CLASS_INFO} )
+            fi
+        fi
+
+        QOS_FAIL=""
+        QOS_DEV_DIR=$( ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " find /sys/devices -type d -name ${REMOTE_DEVICE}  " ) || { FLAG="fail" ; QOS_FAIL="failed" ; }
+        if [ -n "${QOS_DEV_DIR}" ]; then
+            QOS_DEV_INFO=$( ssh -p ${ENV_SSH_PORT} ${REMOTE_HOST} " cat ${QOS_DEV_DIR}/tc/1/traffic_class  " ) || { FLAG="fail" ; QOS_FAIL="failed" ; }
+            if [ -n "${QOS_FAIL}" ] ; then 
+                QOS_DEV_VALUE="unknown"
+                FLAG="fail"
+            else 
+                QOS_DEV_VALUE=$( awk -F'=' '{print $2}' <<< ${QOS_DEV_INFO} )
+                if [ -z "${QOS_DEV_VALUE}" ] ; then
+                    QOS_DEV_VALUE="0"
+                fi
+            fi
+        fi
+
+        printf "%-40s\t%-10s\t%-10s\t%-10s\t%-10s\n" "${REMOTE_INTERFACE}/${REMOTE_DEVICE}/${REMOTE_IP}/${REMOTE_MASK}" "${FLAG}" "${DEV_STATUS}" "${QOS_CLASS_VALUE}/${QOS_DEV_VALUE}" "${MTU}"  >> ${RESULT_FILE}
+
+    done
+
+    printf "________________________________________________________________________________________________________________________________\n" >> ${RESULT_FILE}
+    echo "" >> ${RESULT_FILE}
+}
+
+GetStatus(){
+    echo ""
+    for ADDR in ${POD_IP_LIST} ; do
+        (
+           TestPerHost "${ADDR}"
+        )&
+    done
+    wait
+
+    echo ""
+    echo "=================================== ${CURRENT_FILENAME} summary ===================================================="
+    echo ""
+    FILE_LIST=$( ls ${RESULT_DIR} )
+    for FILE_NAME in ${FILE_LIST}; do
+        cat ${RESULT_DIR}/${FILE_NAME}
+    done
+
+    echo ""
+    echo "total $( ls ${RESULT_DIR} | wc -l ) reports"
+    echo "all result is stored in ${RESULT_DIR}"
+
+    if [ -f "${FAIL_FILE}" ] ; then  
+        echo "!!! test failed"
+        exit 1
+    else
+        echo "all test succeeded"
+        exit 0
+    fi
+}
+
+GetStatus
