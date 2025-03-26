@@ -1,0 +1,8 @@
+#!/bin/bash
+
+CMD="$@"
+
+while true; do
+    echo "run $CMD"
+    $CMD
+done

@@ -174,21 +174,27 @@ RunClient() {
     # reset the port
     PORT=${START_PORT}
     TASK_COUNTER=0
-    while read LINE; do
-        REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
-        REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
-        REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')
-        REMOTE_MASK=$(echo "${LINE}" | awk '{print $4}')
-        REMOTE_PROTOCOL=$(echo "${LINE}" | awk '{print $5}')
-        REMOTE_INDEX=$(echo "${LINE}" | awk '{print $6}')
+
+    # 将文件内容读取到数组中，避免在循环中执行SSH命令时stdin被重定向
+    mapfile -t SERVER_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_SERVER}
+    # 将文件内容读取到数组中，避免在循环中执行SSH命令时stdin被重定向
+    mapfile -t CLIENT_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}
+
+    # 使用数组迭代而不是while read
+    for SERVER_LINE in "${SERVER_LINES[@]}"; do
+
+        REMOTE_DEVICE=$(echo "${SERVER_LINE}" | awk '{print $1}')
+        REMOTE_INTERFACE=$(echo "${SERVER_LINE}" | awk '{print $2}')
+        REMOTE_IP=$(echo "${SERVER_LINE}" | awk '{print $3}')
+        REMOTE_MASK=$(echo "${SERVER_LINE}" | awk '{print $4}')
+        REMOTE_PROTOCOL=$(echo "${SERVER_LINE}" | awk '{print $5}')
+        REMOTE_INDEX=$(echo "${SERVER_LINE}" | awk '{print $6}')
         [ -n "${REMOTE_DEVICE}" ] || continue 
 
         # echo "REMOTE_DEVICE=${REMOTE_DEVICE}  REMOTE_INTERFACE=${REMOTE_INTERFACE}  REMOTE_IP=${REMOTE_IP}  REMOTE_MASK=${REMOTE_MASK} REMOTE_PROTOCOL=${REMOTE_PROTOCOL} REMOTE_INDEX=${REMOTE_INDEX}" 
         # REMOTE_DEVICE=mlx5_16  REMOTE_INTERFACE=net4  REMOTE_IP=172.17.4.58  REMOTE_MASK=24 REMOTE_PROTOCOL=RoceV2 REMOTE_INDEX=3
 
-        #OLD=$IFS
-        #IFS=$'\n'
-        while read CLIENT_LINE; do
+        for CLIENT_LINE in "${CLIENT_LINES[@]}"; do
             #IFS=$OLD
             echo "* CLIENT_LINE: ${CLIENT_LINE}"
             LOCAL_DEVICE=$(echo "${CLIENT_LINE}" | awk '{print $1}')
@@ -254,10 +260,9 @@ RunClient() {
             fi
             echo ""
 
-        done <${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}
-
+        done
         (( PORT = PORT + 1))
-    done <${REMOTE_INFOR_DIR}/${REMOTE_SERVER}
+    done
 
     printf "_____________________________________________________________________________________________________________________________________________________\n" >>${RESULT_FILE}
 
@@ -289,10 +294,12 @@ RunPerOnHost() {
     PORT=${START_PORT}
 
     echo "clean all server on ${REMOTE_HOST}"
-    #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} " PID=\`ps aux | grep ${CMD_CLI} | grep -v grep | awk '{print \$2}' \` ; [ -n \"\${PID}\" ] && { echo \"\${PID}\" | xargs -n 1 -i  kill -9 {} ; } " || true
-    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
+    #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
+    ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "stopServerAlways ${CMD_CLI}" || true
 
-    while read LINE; do
+    # 将文件内容读取到数组中，避免在循环中执行SSH命令时stdin被重定向
+    mapfile -t REMOTE_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+    for LINE in "${REMOTE_LINES[@]}"; do
         REMOTE_DEVICE=$(echo "${LINE}" | awk '{print $1}')
         REMOTE_INTERFACE=$(echo "${LINE}" | awk '{print $2}')
         REMOTE_IP=$(echo "${LINE}" | awk '{print $3}')
@@ -306,13 +313,13 @@ RunPerOnHost() {
         OPTIONS+=" -p ${PORT} "
         echo "server on remote ${REMOTE_HOST} for ${REMOTE_INTERFACE} with ${REMOTE_IP}: ${CMD_CLI} ${OPTIONS}"
         (
-            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " >/dev/null || true
-            #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " &>/dev/null
+            #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "${CMD_CLI} ${OPTIONS} " >/dev/null || true
+            ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "runServerAlways '${CMD_CLI} ${OPTIONS}' " >/dev/null || true
         )&
 
         ((PORT=PORT+1))
 
-    done <${REMOTE_INFOR_DIR}/${REMOTE_HOST}
+    done
 
 }
 

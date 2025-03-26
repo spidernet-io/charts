@@ -1,0 +1,6 @@
+#!/bin/bash
+
+CMD_CLI="$@"
+
+killall -9 runServerAlways
+killall -9 ${CMD_CLI}
