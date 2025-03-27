@@ -169,7 +169,7 @@ RunClient() {
 
     mapfile -t SERVER_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_SERVER}
     mapfile -t CLIENT_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_CLIENT}
-    
+
     for SERVER_LINE in "${SERVER_LINES[@]}"; do
         REMOTE_DEVICE=$(echo "${SERVER_LINE}" | awk '{print $1}')
         REMOTE_INTERFACE=$(echo "${SERVER_LINE}" | awk '{print $2}')
@@ -284,6 +284,7 @@ RunPerOnHost() {
     echo "clean all server on ${REMOTE_HOST}"
     #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
     ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "stopServerAlways ${CMD_CLI}" || true
+    sleep 2
 
     mapfile -t REMOTE_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_HOST}
     for LINE in "${REMOTE_LINES[@]}"; do
@@ -311,6 +312,15 @@ RunPerOnHost() {
 
 }
 
+StopAllServer(){
+
+    for ADDR in ${ALL_HOST_LIST} ; do
+        echo "clean all server on ${ADDR}"
+        #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
+        ssh  -p ${ENV_SSH_PORT} ${ADDR} "stopServerAlways ${CMD_CLI}" || true
+    done
+    sleep 2
+}
 
 TestRdma() {
 
@@ -391,7 +401,7 @@ TestRdma() {
 #-------------------------
 DURATION=${DURATION:-"60"}
 LOOP_TIMES=${LOOP_TIMES:-"1"}
-START_PORT=${START_PORT:-"10001"}
+START_PORT=${START_PORT:-"10000"}
 # run all RDMA client asynchronously for each rdma device and each node
 ASYNCHRONOUS=${ASYNCHRONOUS:-"false"}
 SAME_NETWORK_TRACK=${SAME_NETWORK_TRACK:-"true"}
@@ -423,7 +433,7 @@ for ((ROUND_COUNTER=1;ROUND_COUNTER<=${LOOP_TIMES};ROUND_COUNTER++)); do
 
     echo ""
 done
-
+StopAllServer
 
 echo ""
 echo ""

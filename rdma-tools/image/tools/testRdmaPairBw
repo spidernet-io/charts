@@ -262,7 +262,7 @@ RunClient() {
 
         done
         (( PORT = PORT + 1))
-        
+
         # wait the remote server to restart
         sleep 1
     done
@@ -295,10 +295,10 @@ RunPerOnHost() {
         exit 1
     }
     PORT=${START_PORT}
-
     echo "clean all server on ${REMOTE_HOST}"
     #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
     ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "stopServerAlways ${CMD_CLI}" || true
+    sleep 2
 
     # 将文件内容读取到数组中，避免在循环中执行SSH命令时stdin被重定向
     mapfile -t REMOTE_LINES < ${REMOTE_INFOR_DIR}/${REMOTE_HOST}
@@ -326,6 +326,15 @@ RunPerOnHost() {
 
 }
 
+StopAllServer(){
+
+    for ADDR in ${ALL_HOST_LIST} ; do
+        echo "clean all server on ${ADDR}"
+        #ssh  -p ${ENV_SSH_PORT} ${REMOTE_HOST} "killall -9 ${CMD_CLI}" || true
+        ssh  -p ${ENV_SSH_PORT} ${ADDR} "stopServerAlways ${CMD_CLI}" || true
+    done
+    sleep 2
+}
 
 TestRdma() {
 
@@ -467,7 +476,7 @@ RDMAStatisticSummary(){
 #-------------------------
 DURATION=${DURATION:-"60"}
 LOOP_TIMES=${LOOP_TIMES:-"1"}
-START_PORT=${START_PORT:-"10001"}
+START_PORT=${START_PORT:-"10000"}
 # run all RDMA client asynchronously for each rdma device and each node
 ASYNCHRONOUS=${ASYNCHRONOUS:-"false"}
 SAME_NETWORK_TRACK=${SAME_NETWORK_TRACK:-"true"}
@@ -484,6 +493,7 @@ CMD_CLI="${BW_CMD_CLI}"
 CMD_OPTIONS="${BW_CMD_OPTIONS}"
 
 echo "run ${LOOP_TIMES} times with duration ${DURATION} of ${LOOP_TIMES} round, asynchronously is ${ASYNCHRONOUS}"
+
 
 RecordRDMAStatistic "old"
 
@@ -506,6 +516,7 @@ for ((ROUND_COUNTER=1;ROUND_COUNTER<=${LOOP_TIMES};ROUND_COUNTER++)); do
 done
 
 RecordRDMAStatistic "new"
+StopAllServer
 
 echo ""
 echo ""

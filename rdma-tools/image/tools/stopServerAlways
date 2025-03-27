@@ -2,5 +2,6 @@
 
 CMD_CLI="$@"
 
-killall -9 runServerAlways
-killall -9 ${CMD_CLI}
+killall -9 runServerAlways || true 
+killall -9 ${CMD_CLI} || true 
+
