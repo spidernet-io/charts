@@ -96,7 +96,7 @@ COPY --from=buildtools /opt/hpcx              /opt/hpcx
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
 COPY --from=buildtools /buildNvbandwidth/*     /usr/bin/
-COPY --from=buildtools /usr/local/bin/tcpdump  /usr/bin/tcpdump
+COPY --from=buildtools /usr/local/bin/tcpdump  /usr/local/bin/tcpdump
 
 COPY --from=buildserver /server/echo-server  /usr/bin/
 
