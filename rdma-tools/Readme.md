@@ -31,10 +31,6 @@ cat <<EOF > values.yaml
 # for china user , it could add these to use a domestic registry
 image:
   registry: ghcr.m.daocloud.io
-  # the default tag is for cuda and nccl, the image is 3G
-  #tag: v1.0.0
-  # the light tag does not include nccl and cuda, the image is 160 M
-  #tag: light-v1.0.0
 
 # just run daemonset in nodes 'worker1' and 'worker2'
 # affinity:
@@ -74,8 +70,17 @@ securityContext:
     add: [ "IPC_LOCK" ]
 EOF
 
-# for China user, add `--set image.registry=ghcr.m.daocloud.io`
-helm install rdma-tools spiderchart/rdma-tools -n rdma --create-namespace -f ./values.yaml
+# the light image does not include nccl and cuda and could not run nccl-test, and the image size is 160 M
+VERSION=$( helm search repo spiderchart/rdma-tools | sed -n '2p' | awk '{print $2}' )
+helm install rdma-tools spiderchart/rdma-tools \
+    -n rdma --create-namespace \
+    --set image.tag=light-v${VERSION}  \
+    -f ./values.yaml
+
+# the default image includes cuda and nccl for running nccl-test, and the image size is 3G
+helm install rdma-tools spiderchart/rdma-tools \
+    -n rdma --create-namespace \
+    -f ./values.yaml
 
 ```
 
