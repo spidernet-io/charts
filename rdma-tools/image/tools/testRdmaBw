@@ -42,6 +42,7 @@ if [ -z "${POD_IP_LIST}" ] ;then
     POD_IP_LIST=$(getOtherEndpoints 2>/dev/null) || true
 fi
 
+EXCLUDE_ENDPOINT=${EXCLUDE_ENDPOINT:-""}
 if [ -n "${EXCLUDE_ENDPOINT}" ]; then
     echo ""
     TMP_LIST=""
