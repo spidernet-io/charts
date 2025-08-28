@@ -52,9 +52,12 @@ PARAMETERS=" -np $((POD_NUM * GPU_NUM)) -H ${HOST_SLOT}  \
 
 # todo: each process own one GPU
 
+TOPO_FILE="/tmp/topology_dump.xml"
+
 # for log
 echo "-------------------------------  run with enabling GDR and gdrCopy --------------------------"
 OPTIONS=" -d -x NCCL_DEBUG=INFO -x NCCL_DEBUG_SUBSYS=ALL \
+          -x NCCL_TOPO_DUMP_FILE=${TOPO_FILE} \
           -x UCX_LOG_LEVEL=INFO -x UCX_PROTO_ENABLE=y -x UCX_PROTO_INFO=y \
           -x HCOLL_LOG_LEVEL=INFO \
          -x NCCL_GDRCOPY_ENABLE=1 \
@@ -87,3 +90,4 @@ echo ""
 echo " mpirun ${OPTIONS} "
 echo ""
 mpirun ${OPTIONS}
+
