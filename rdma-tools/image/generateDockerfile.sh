@@ -9,17 +9,21 @@ CURRENT_DIR_PATH=$(cd `dirname $0`; pwd)
 cd ${CURRENT_DIR_PATH}
 
 VAR_NCCL_BASE=${VAR_NCCL_BASE:-"true"}
+DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY:-"docker.io"}
+BASE_GOLANG_IMAGE=${BASE_GOLANG_IMAGE:-"golang:1.24.1"}
 echo "VAR_NCCL_BASE=${VAR_NCCL_BASE}"
+echo "DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY}"
+echo "BASE_GOLANG_IMAGE=${BASE_GOLANG_IMAGE}"
 
 # https://hub.docker.com/r/nvidia/cuda
 # nvidia/cuda:12.5.1-cudnn-runtime-ubuntu22.04
 
 if [ "$VAR_NCCL_BASE" == "true" ] ; then
     #
-    export ENV_BASEIMAGE_CUDA_VERISON=${ENV_BASEIMAGE_CUDA_VERISON:-"12.5.1"}
+    export ENV_BASEIMAGE_CUDA_VERISON=${ENV_BASEIMAGE_CUDA_VERISON:-"12.8.1"}
     export ENV_BASEIMAGE_OS_VERISON=${ENV_BASEIMAGE_OS_VERISON:-"ubuntu22.04"}
-    export ENV_BASEIMAGE_FULL_NAME=nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-runtime-${ENV_BASEIMAGE_OS_VERISON}
-    export ENV_BUILD_TOOLS_IMAGE_NAME=nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-devel-${ENV_BASEIMAGE_OS_VERISON}
+    export ENV_BASEIMAGE_FULL_NAME=${DOCKER_IMAGE_REGISTRY}/nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-runtime-${ENV_BASEIMAGE_OS_VERISON}
+    export ENV_BUILD_TOOLS_IMAGE_NAME=${DOCKER_IMAGE_REGISTRY}/nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-devel-${ENV_BASEIMAGE_OS_VERISON}
     #
     export ENV_INSTALL_HPCX=true
     # https://developer.nvidia.com/networking/hpc-x
@@ -37,7 +41,13 @@ if [ "$VAR_NCCL_BASE" == "true" ] ; then
     # 2024.7.30
     export ENV_GDRCOPY_COMMIT=${ENV_GDRCOPY_COMMIT:-"1366e20d140c5638fcaa6c72b373ac69f7ab2532"}
     # https://github.com/NVIDIA/cuda-samples
-    export ENV_VERSION_CUDA_SAMPLE=${ENV_VERSION_CUDA_SAMPLE:-"v12.5"}
+    # 2024.7.30
+    export ENV_VERSION_CUDA_SAMPLE=${ENV_VERSION_CUDA_SAMPLE:-"v12.8"}
+
+    # https://github.com/NVIDIA/nvshmem/tags
+    export ENV_NVSHMEM_VERSION=${ENV_NVSHMEM_VERSION:-"3.4.5"}
+    # CMake CUDA architectures list (e.g., 90 for Hopper, 100 for Blackwell)
+    export ENV_CMAKE_CUDA_ARCHITECTURES=${ENV_CMAKE_CUDA_ARCHITECTURES:-"90;100"}
 else
     export ENV_BASEIMAGE_CUDA_VERISON=
     export ENV_BASEIMAGE_OS_VERISON=
@@ -52,10 +62,28 @@ else
     export ENV_VERSION_NVBANDWIDTH=
     export ENV_GDRCOPY_COMMIT=
     export ENV_VERSION_CUDA_SAMPLE=
+    export ENV_NVSHMEM_VERSION=
+    export ENV_CMAKE_CUDA_ARCHITECTURES=
 fi 
 
+export ENV_BUILD_GOLANG_SERVER_IMAGE_NAME=${DOCKER_IMAGE_REGISTRY}/${BASE_GOLANG_IMAGE}
+export ENV_DEEPEP_VERSION=${ENV_DEEPEP_VERSION:-"9af0e0d0e74f3577af1979c9b9e1ac2cad0104ee"}
+export ENV_DEEPGEMM_VERSION=${ENV_DEEPGEMM_VERSION:-"main"}
+export ENV_UCX_VERSION=${ENV_UCX_VERSION:-"v1.19.1"}
+export ENV_INSTALL_CUDA_TOOLKIT=${ENV_INSTALL_CUDA_TOOLKIT:-"true"}
+
+export ENV_BUILD_AND_DOWNLOAD_PARALLEL=${ENV_BUILD_AND_DOWNLOAD_PARALLEL:-"8"}
+# Allow external GITHUB_ARTIFACTORY to override the default github.com mirror
+export ENV_GITHUB_ARTIFACTORY=${GITHUB_ARTIFACTORY:-${ENV_GITHUB_ARTIFACTORY:-"github.com"}}
+export ENV_TORCH_CUDA_ARCH_LIST=${ENV_TORCH_CUDA_ARCH_LIST:-"9.0;10.0"}
+
 # for cuda and libgdrapi.so
-export ENV_LD_LIBRARY_PATH="/usr/local/cuda-12.5/compat:/usr/lib/x86_64-linux-gnu"
+if [ -n "${ENV_BASEIMAGE_CUDA_VERISON}" ] ; then
+    CUDA_SHORT=$(echo "${ENV_BASEIMAGE_CUDA_VERISON}" | cut -d. -f1,2)
+    export ENV_LD_LIBRARY_PATH="/usr/local/cuda-${CUDA_SHORT}/compat:/usr/lib/x86_64-linux-gnu"
+else
+    export ENV_LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu"
+fi
 
 # https://github.com/linux-rdma/perftest
 export ENV_VERSION_PERFTEST=${ENV_VERSION_PERFTEST:-"24.04.0-0.41"}
@@ -70,27 +98,36 @@ echo "------------------------ Generate Dockerfile ---------------------------"
 
 GenerateDockerfile(){
     pwd
-    rm -f  Dockerfile || true
+    rm -f Dockerfile || true
     cp Dockerfile.template Dockerfile
 
-    ALL_ENV=$(printenv | grep ENV)
+    # 只获取以 ENV_ 开头的变量，避免将系统所有的环境变量都进行循环处理
+    ALL_ENV=$(printenv | grep "^ENV_")
+    
+    # 确定 sed -i 的语法（兼容 macOS 和 Linux）
+    SED_INPLACE_ARG=("-i")
+    if ! sed --version >/dev/null 2>&1 ; then
+        SED_INPLACE_ARG=("-i" "")
+    fi
+
     OLD=$IFS
     IFS=$'\n'
     for ITEM in ${ALL_ENV} ;do
-        KEY=$( echo "$ITEM" | awk -F'=' '{print $1}' )
-        VALUE=$( echo "$ITEM" | sed 's?'"${KEY}"='??' )
-        echo "KEY=${KEY}         VALUE=${VALUE}"
-        sed -i 's?<<'"${KEY}"'>>?'"${VALUE}"'?g'  Dockerfile
+        # 使用 Shell 自带的参数扩展，不再依赖 awk 和 sed
+        KEY="${ITEM%%=*}"
+        VALUE="${ITEM#*=}"
+        
+        echo "Replacing <<${KEY}>> with ${VALUE}"
+        
+        # 这里的分隔符建议用一个极罕见的字符，或者对 VALUE 进行转义
+        # 修复 112 行：使用 @ 作为分隔符通常比 ? 更安全
+        sed "${SED_INPLACE_ARG[@]}" "s@<<${KEY}>>@${VALUE}@g" Dockerfile
     done
     IFS=$OLD
 }
 GenerateDockerfile
 
-
 echo ""
 echo "------------------------ show Dockerfile ---------------------------"
 cat Dockerfile
 echo ""
-
-
-

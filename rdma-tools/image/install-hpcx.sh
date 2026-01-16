@@ -9,6 +9,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+ENV_GITHUB_ARTIFACTORY=${ENV_GITHUB_ARTIFACTORY:-"github.com"}
 
 if [ "${ENV_INSTALL_HPCX}" == "false" ] ; then
     exit 0
@@ -30,7 +31,7 @@ mv ${HPCX_DISTRIBUTION} ${HPCX_DEST_DIR}
 echo "--------------- install nccltest -------------------"
 echo "build nccl test version ${ENV_VERSION_NCCLTEST}"
 mkdir /buildnccltest && cd /buildnccltest
-wget --no-check-certificate  https://github.com/NVIDIA/nccl-tests/archive/refs/tags/${ENV_VERSION_NCCLTEST}.tar.gz
+wget --no-check-certificate  https://${ENV_GITHUB_ARTIFACTORY}/NVIDIA/nccl-tests/archive/refs/tags/${ENV_VERSION_NCCLTEST}.tar.gz
 tar xvf ${ENV_VERSION_NCCLTEST}.tar.gz
 cd nccl-tests*
 source ${HPCX_DEST_DIR}/hpcx-init.sh
@@ -44,14 +45,30 @@ echo "build cuda sample: ${ENV_VERSION_CUDA_SAMPLE}"
 rm -rf /tmp/build || true
 mkdir /tmp/build
 cd /tmp/build
-wget --no-check-certificate https://github.com/NVIDIA/cuda-samples/archive/refs/tags/${ENV_VERSION_CUDA_SAMPLE}.tar.gz
+wget --no-check-certificate https://${ENV_GITHUB_ARTIFACTORY}/NVIDIA/cuda-samples/archive/refs/tags/${ENV_VERSION_CUDA_SAMPLE}.tar.gz
 tar xzvf ${ENV_VERSION_CUDA_SAMPLE}.tar.gz
 cd cuda-samples*/Samples/1_Utilities/bandwidthTest
-make -j20
+apt-get update
+apt-get install -y --no-install-recommends cmake
+
+if [ -f Makefile ] || [ -f makefile ] ; then
+    make -j20
+    BW_BIN="./bandwidthTest"
+else
+    rm -rf build || true
+    mkdir -p build
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build -j20
+    BW_BIN=$(find build -maxdepth 3 -type f -name bandwidthTest -perm -111 | head -n 1)
+fi
+
+[ -n "${BW_BIN}" ] || { echo "error: failed to find bandwidthTest binary" ; exit 1 ; }
+[ -x "${BW_BIN}" ] || { echo "error: bandwidthTest binary is not executable: ${BW_BIN}" ; exit 1 ; }
+
 ls
 rm -rf /buildCudaSample || true
 mkdir /buildCudaSample
-install bandwidthTest /buildCudaSample/
+install "${BW_BIN}" /buildCudaSample/bandwidthTest
 cd /tmp
 rm -rf /tmp/build
 
@@ -63,7 +80,7 @@ apt install  -y --no-install-recommends  build-essential devscripts debhelper fa
 rm -rf /tmp/build || true
 mkdir /tmp/build
 cd /tmp/build
-wget --no-check-certificate https://github.com/NVIDIA/gdrcopy/archive/${ENV_GDRCOPY_COMMIT}.zip
+wget --no-check-certificate https://${ENV_GITHUB_ARTIFACTORY}/NVIDIA/gdrcopy/archive/${ENV_GDRCOPY_COMMIT}.zip
 unzip *.zip
 ls
 cd gdrcopy*/packages
@@ -81,7 +98,7 @@ apt install  -y --no-install-recommends  wget cmake
 rm -rf /tmp/build || true
 mkdir /tmp/build
 cd /tmp/build
-wget --no-check-certificate https://github.com/NVIDIA/nvbandwidth/archive/refs/tags/${ENV_VERSION_NVBANDWIDTH}.tar.gz
+wget --no-check-certificate https://${ENV_GITHUB_ARTIFACTORY}/NVIDIA/nvbandwidth/archive/refs/tags/${ENV_VERSION_NVBANDWIDTH}.tar.gz
 tar xzvf *.tar.gz
 cd nvbandwidth-*/
 ./debian_install.sh

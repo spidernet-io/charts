@@ -73,6 +73,7 @@ apt-get install -y --no-install-recommends wget
 
 InstallNccl
 InstallEnv
+InstallGdrCopy
 
 apt-get purge --auto-remove
 apt-get clean

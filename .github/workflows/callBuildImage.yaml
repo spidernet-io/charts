@@ -139,9 +139,7 @@ jobs:
           github-token: ${{ secrets.WELAN_PAT }}
           platforms: ${{ env.build_platform }}
           outputs: type=tar,dest=/tmp/${{ env.upload_image_artifact_name }}.tar
-          tags: |
-            ${{ env.image_full_name }}:${{ env.image_tag }}
-            ${{ env.image_full_name }}:latest
+          tags: ${{ format('{0}:{1}{2}', env.image_full_name, env.image_tag, (!startsWith(env.image_tag, 'light-') && env.image_tag != 'light-latest') && format('\n{0}:latest', env.image_full_name) || '') }}
           build-args: |
             GIT_COMMIT_VERSION=${{ env.commitver }}
             GIT_COMMIT_TIME=${{ env.committime }}
