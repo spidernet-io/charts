@@ -42,7 +42,7 @@ permissions: write-all
 
 jobs:
   build-and-push:
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment: release-base-images
     runs-on: ubuntu-latest
     outputs:
@@ -133,6 +133,16 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      - name: Prepare artifact mode
+        id: artifact_mode
+        shell: bash
+        run: |
+          if [[ "${{ env.upload_artifact }}" == "true" ]]; then
+            echo "with_artifact=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "with_artifact=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Login to online register
         uses: docker/login-action@v3.2.0
         with:
@@ -140,8 +150,9 @@ jobs:
           password: ${{ env.ONLINE_REGISTER_PASSWORD }}
           registry: ${{ env.ONLINE_REGISTER }}
 
-      - name: Release build ${{ env.image_name }}
+      - name: Release build ${{ env.image_name }} with artifact
         uses: docker/build-push-action@v5.4.0
+        if: ${{ steps.artifact_mode.outputs.with_artifact == 'true' }}
         continue-on-error: false
         id: docker_build_release
         with:
@@ -159,9 +170,28 @@ jobs:
             GIT_COMMIT_TIME=${{ env.committime }}
             VERSION=${{ env.code_sha }}
 
+      - name: Release build ${{ env.image_name }}
+        uses: docker/build-push-action@v5.4.0
+        if: ${{ steps.artifact_mode.outputs.with_artifact != 'true' }}
+        continue-on-error: false
+        id: docker_build_release_no_artifact
+        with:
+          context: ./${{ env.dockerfile_dirctory }}
+          file: ./${{ env.dockerfile_dirctory }}/Dockerfile
+          push: ${{ env.push_image }}
+          provenance: false
+          github-token: ${{ secrets.WELAN_PAT }}
+          platforms: ${{ env.build_platform }}
+          tags: |
+            ${{ steps.prepare_tags.outputs.tags }}
+          build-args: |
+            GIT_COMMIT_VERSION=${{ env.commitver }}
+            GIT_COMMIT_TIME=${{ env.committime }}
+            VERSION=${{ env.code_sha }}
+
       # Upload artifact race images tar
       - name: Upload image tar
-        if: ${{ env.upload_artifact == 'true' }}
+        if: ${{ steps.artifact_mode.outputs.with_artifact == 'true' }}
         uses: actions/upload-artifact@v4.6.0
         with:
           name: ${{ env.upload_image_artifact_name }}
