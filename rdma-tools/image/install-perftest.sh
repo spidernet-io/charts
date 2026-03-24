@@ -9,6 +9,8 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+ENV_GITHUB_ARTIFACTORY=${ENV_GITHUB_ARTIFACTORY:-"github.com"}
+
 echo "build perftest ${ENV_VERSION_PERFTEST}"
 
 # required by perftest
@@ -25,7 +27,7 @@ apt-get install -y --no-install-recommends libibverbs-dev librdmacm-dev libibuma
 cd /tmp
 rm -rf * || true
 
-wget --no-check-certificate https://github.com/linux-rdma/perftest/archive/refs/tags/${ENV_VERSION_PERFTEST}.tar.gz
+wget --no-check-certificate https://${ENV_GITHUB_ARTIFACTORY}/linux-rdma/perftest/archive/refs/tags/${ENV_VERSION_PERFTEST}.tar.gz
 tar xzvf ${ENV_VERSION_PERFTEST}.tar.gz
 cd perftest-${ENV_VERSION_PERFTEST}
 ./autogen.sh
