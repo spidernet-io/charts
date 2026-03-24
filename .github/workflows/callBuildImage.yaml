@@ -120,6 +120,19 @@ jobs:
           fi
           ${{ inputs.generateDockerfileCmd }}
 
+      - name: Prepare image tags
+        id: prepare_tags
+        shell: bash
+        run: |
+          {
+            echo 'tags<<EOF'
+            echo "${{ env.image_full_name }}:${{ env.image_tag }}"
+            if [[ "${{ env.image_tag }}" != light-* ]] && [[ "${{ env.image_tag }}" != "light-latest" ]] && [[ "${{ env.image_tag }}" != "latest" ]]; then
+              echo "${{ env.image_full_name }}:latest"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Login to online register
         uses: docker/login-action@v3.2.0
         with:
@@ -139,7 +152,8 @@ jobs:
           github-token: ${{ secrets.WELAN_PAT }}
           platforms: ${{ env.build_platform }}
           outputs: type=tar,dest=/tmp/${{ env.upload_image_artifact_name }}.tar
-          tags: ${{ format('{0}:{1}{2}', env.image_full_name, env.image_tag, (!startsWith(env.image_tag, 'light-') && env.image_tag != 'light-latest') && format('\n{0}:latest', env.image_full_name) || '') }}
+          tags: |
+            ${{ steps.prepare_tags.outputs.tags }}
           build-args: |
             GIT_COMMIT_VERSION=${{ env.commitver }}
             GIT_COMMIT_TIME=${{ env.committime }}
