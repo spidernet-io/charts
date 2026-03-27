@@ -68,7 +68,7 @@ fi
 
 export ENV_BUILD_GOLANG_SERVER_IMAGE_NAME=${DOCKER_IMAGE_REGISTRY}/${BASE_GOLANG_IMAGE}
 export ENV_DEEPEP_VERSION=${ENV_DEEPEP_VERSION:-"9af0e0d0e74f3577af1979c9b9e1ac2cad0104ee"}
-export ENV_DEEPGEMM_VERSION=${ENV_DEEPGEMM_VERSION:-"main"}
+export ENV_DEEPGEMM_VERSION=${ENV_DEEPGEMM_VERSION:-"nv_dev_4ff3f54"}
 export ENV_UCX_VERSION=${ENV_UCX_VERSION:-"v1.19.1"}
 export ENV_INSTALL_CUDA_TOOLKIT=${ENV_INSTALL_CUDA_TOOLKIT:-"true"}
 
@@ -124,6 +124,18 @@ GenerateDockerfile(){
         sed "${SED_INPLACE_ARG[@]}" "s@<<${KEY}>>@${VALUE}@g" Dockerfile
     done
     IFS=$OLD
+
+    if [ "${VAR_NCCL_BASE}" = "true" ] ; then
+        sed "${SED_INPLACE_ARG[@]}" '/##NO_DEEPEP_BEGIN/,/##NO_DEEPEP_END/d' Dockerfile
+        sed "${SED_INPLACE_ARG[@]}" '/##DEEPEP_BEGIN/d' Dockerfile
+        sed "${SED_INPLACE_ARG[@]}" '/##DEEPEP_END/d' Dockerfile
+    else
+        sed "${SED_INPLACE_ARG[@]}" '/##DEEPEP_BEGIN/,/##DEEPEP_END/d' Dockerfile
+        sed "${SED_INPLACE_ARG[@]}" '/##NO_DEEPEP_BEGIN/d' Dockerfile
+        sed "${SED_INPLACE_ARG[@]}" '/##NO_DEEPEP_END/d' Dockerfile
+        sed "${SED_INPLACE_ARG[@]}" '/ENV_DEEPEP_VERSION=/d' Dockerfile
+        sed "${SED_INPLACE_ARG[@]}" '/ENV_DEEPGEMM_VERSION=/d' Dockerfile
+    fi
 }
 GenerateDockerfile
 

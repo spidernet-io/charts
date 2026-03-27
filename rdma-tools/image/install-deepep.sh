@@ -75,9 +75,8 @@ cd /
 rm -rf /tmp/deepep
 
 rm -rf /opt/DeepGEMM || true
-git clone https://${ENV_GITHUB_ARTIFACTORY}/deepseek-ai/DeepGEMM.git /opt/DeepGEMM
+git clone -b "${ENV_DEEPGEMM_VERSION}" --depth 1 https://${ENV_GITHUB_ARTIFACTORY}/deepseek-ai/DeepGEMM.git /opt/DeepGEMM
 cd /opt/DeepGEMM
-git checkout ${ENV_DEEPGEMM_VERSION}
 git submodule update --init --recursive
 python setup.py bdist_wheel
 cp dist/*.whl /buildDeepGEMM/

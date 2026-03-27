@@ -225,9 +225,10 @@ InstallOfedRepo
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstallSSH
 
-if [ -n "${ENV_BASEIMAGE_CUDA_VERISON:-}" ] ; then
+ if [ -n "${ENV_BASEIMAGE_CUDA_VERISON:-}" ] ; then
   apt-get install -y --no-install-recommends \
     python3 \
+    python3-dev \
     python3-pip \
     python-is-python3 \
     ca-certificates
@@ -260,7 +261,13 @@ if [ -n "${ENV_BASEIMAGE_CUDA_VERISON:-}" ] ; then
   CU_VER=$(echo "${CUDA_SHORT}" | tr -d .)
   pip3 install torch numpy packaging --extra-index-url https://download.pytorch.org/whl/cu${CU_VER}
   pip3 install /buildDeepEP/*.whl /buildDeepGEMM/*.whl --force-reinstall
-  rm -rf /buildDeepEP /buildDeepGEMM
+  python3 - <<'PY'
+import importlib
+modules = ["deepep", "deep_gemm"]
+for name in modules:
+    mod = importlib.import_module(name)
+    print(f"validated import: {name} -> {getattr(mod, '__file__', '')}")
+PY
 
   echo "/usr/local/lib" > /etc/ld.so.conf.d/ucx.conf
   echo "/opt/nvshmem/lib" > /etc/ld.so.conf.d/nvshmem.conf

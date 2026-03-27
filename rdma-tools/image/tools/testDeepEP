@@ -4,7 +4,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-TEST_DIR=${TEST_DIR:-"/opt/DeepEP"}
+TEST_DIR=${TEST_DIR:-"/opt/DeepEP/tests"}
 PYTHON_EXEC=${PYTHON_EXEC:-"python3"}
 REPORT_FILE=${REPORT_FILE:-"/tmp/deepep_benchmark_results.json"}
 RAW_LOG=${RAW_LOG:-"/tmp/deepep_raw.log"}
@@ -29,7 +29,7 @@ SSH_PORT=${SSH_PORT:-2022}
 
 RUN_INTRANODE=${RUN_INTRANODE:-"true"}
 RUN_LOW_LATENCY=${RUN_LOW_LATENCY:-"true"}
-RUN_INTERNODE=${RUN_INTERNODE:-"false"}
+RUN_INTERNODE=${RUN_INTERNODE:-"true"}
 INTERNODE_ORCHESTRATE=${INTERNODE_ORCHESTRATE:-"true"}
 INTERNODE_NUM_PROCESSES=${INTERNODE_NUM_PROCESSES:-""}
 INTERNODE_LOG_DIR=${INTERNODE_LOG_DIR:-""}
@@ -415,6 +415,34 @@ run_one_test() {
   echo "=== END TEST: ${name} ===" >>"${RAW_LOG}"
 
   echo $((t1 - t0)) $rc
+}
+
+tail_log_lines_json() {
+  local file=${1:-""}
+  local lines=${2:-40}
+  if [[ -n "${file}" ]] && [[ -f "${file}" ]]; then
+    tail -n "${lines}" "${file}" 2>/dev/null | jq -Rs '.' 2>/dev/null || printf '""'
+  else
+    printf '""'
+  fi
+}
+
+build_internode_failure_logs_json() {
+  local per_host_json=${1:-"[]"}
+  local result='[]'
+  local item
+  while IFS= read -r item; do
+    [[ -n "${item}" ]] || continue
+    local item_log_path
+    item_log_path=$(printf '%s' "${item}" | jq -r '.log_path // empty' 2>/dev/null || echo "")
+    local item_tail_json
+    item_tail_json=$(tail_log_lines_json "${item_log_path}" 60)
+    local item_with_tail
+    item_with_tail=$(printf '%s' "${item}" | jq -c --argjson log_tail "${item_tail_json}" '. + {log_tail: $log_tail}' 2>/dev/null || echo "")
+    [[ -n "${item_with_tail}" ]] || continue
+    result=$(jq -c --argjson arr "${result}" --argjson obj "${item_with_tail}" '$arr + [$obj]' 2>/dev/null <<<'null' || echo '[]')
+  done < <(echo "${per_host_json}" | jq -c '.[] | select(.status != "pass") | {host,rank,status,rc,log_path}' 2>/dev/null || true)
+  printf '%s' "${result}"
 }
 
 extract_block() {
@@ -860,6 +888,15 @@ PY
   internode_ibgda_any=$(echo "${internode_per_host}" | jq '[.[].has_ibgda] | any(.==1)' 2>/dev/null || echo false)
   internode_ibgda_all=$(echo "${internode_per_host}" | jq '[.[].has_ibgda] | all(.==1)' 2>/dev/null || echo false)
 
+  local internode_master_log_tail_json
+  internode_master_log_tail_json=$(tail_log_lines_json "${internode_master_log_path}" 60)
+
+  local internode_failure_logs_json
+  internode_failure_logs_json=$(build_internode_failure_logs_json "${internode_per_host}")
+  if [[ -z "${internode_failure_logs_json}" ]] || [[ "${internode_failure_logs_json}" = "null" ]]; then
+    internode_failure_logs_json='[]'
+  fi
+
   local internode_best_dispatch_line internode_best_combine_line
   internode_best_dispatch_line=$(printf '%s\n' "${internode_master_log}" | grep -E "Best dispatch" | head -n 1 || true)
   internode_best_combine_line=$(printf '%s\n' "${internode_master_log}" | grep -E "Best combine" | head -n 1 || true)
@@ -903,6 +940,10 @@ PY
     --argjson combine_rdma_gbps "${internode_combine_rdma_gbps}" \
     --argjson combine_nvl_gbps "${internode_combine_nvl_gbps}" \
     --argjson per_host "${internode_per_host_min}" \
+    --arg log_dir "${internode_log_dir_effective}" \
+    --arg master_log_path "${internode_master_log_path}" \
+    --argjson master_log_tail "${internode_master_log_tail_json}" \
+    --argjson failure_summary "${internode_failure_logs_json}" \
     ' {
       name: $name,
       scope: $scope,
@@ -913,11 +954,15 @@ PY
         gpus_per_host: $gpus_per_host,
         total_gpus: $total_gpus,
         master: {host: $master_host, port: $master_port},
+        log_dir: $log_dir,
+        master_log_path: $master_log_path,
         transports: {ibgda_any: $ibgda_any, ibgda_all: $ibgda_all},
         best_dispatch: {rdma_gbps: $dispatch_rdma_gbps, nvl_gbps: $dispatch_nvl_gbps},
-        best_combine: {rdma_gbps: $combine_rdma_gbps, nvl_gbps: $combine_nvl_gbps}
+        best_combine: {rdma_gbps: $combine_rdma_gbps, nvl_gbps: $combine_nvl_gbps},
+        master_log_tail: $master_log_tail
       },
-      per_host: $per_host
+      per_host: $per_host,
+      failure_summary: $failure_summary
     }')
 
   local highlights_json
@@ -963,6 +1008,35 @@ PY
         highlights: $highlights
       }
     }' | jq '.' >"${REPORT_FILE}"
+
+  if [[ "${RUN_INTERNODE}" == "true" ]] && { [[ "${internode_status}" == "fail" ]] || [[ "${internode_status}" == "timeout" ]]; }; then
+    echo "==================== DeepEP INTERNODE DEBUG ===================="
+    echo "  - internode_log_dir:    ${internode_log_dir_effective}"
+    echo "  - master_log_path:      ${internode_master_log_path}"
+    echo "  - master:               ${internode_master_host}:${internode_master_port}"
+    echo "  - num_procs_per_host:   ${internode_num_procs_used}"
+    if [[ -f "${internode_master_log_path}" ]]; then
+      echo "--- master log tail (${internode_master_log_path}) ---"
+      tail -n 60 "${internode_master_log_path}" 2>/dev/null || true
+    fi
+    if [[ -n "${internode_failure_logs_json}" ]] && [[ "${internode_failure_logs_json}" != "[]" ]]; then
+      echo "--- failed host log tails ---"
+      while IFS= read -r item; do
+        [[ -n "${item}" ]] || continue
+        local fh_host fh_status fh_path
+        fh_host=$(printf '%s' "${item}" | jq -r '.host // ""' 2>/dev/null || echo "")
+        fh_status=$(printf '%s' "${item}" | jq -r '.status // ""' 2>/dev/null || echo "")
+        fh_path=$(printf '%s' "${item}" | jq -r '.log_path // ""' 2>/dev/null || echo "")
+        echo "--- host=${fh_host} status=${fh_status} log=${fh_path} ---"
+        if [[ -f "${fh_path}" ]]; then
+          tail -n 60 "${fh_path}" 2>/dev/null || true
+        else
+          echo "(log file not found)"
+        fi
+      done < <(echo "${internode_failure_logs_json}" | jq -c '.[]' 2>/dev/null || true)
+    fi
+    echo "============================================================="
+  fi
 
   echo "======================= DeepEP REPORT ======================="
   cat "${REPORT_FILE}"
