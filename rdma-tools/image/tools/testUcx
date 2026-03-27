@@ -12,7 +12,7 @@ SSH_PORT=${SSH_PORT:-2022}
 
 TESTS=${TESTS:-"tag_lat tag_bw"}
 SAME_NETWORK_TRACK=${SAME_NETWORK_TRACK:-"true"}
-SAME_RAIL_ONLY=${SAME_RAIL_ONLY:-"false"}
+SAME_RAIL_ONLY=${SAME_RAIL_ONLY:-"true"}
 
 RDMA_MODE=${RDMA_MODE:-"infiniband"}
 
@@ -41,7 +41,7 @@ Common environment variables:
   SSH_PORT=2022|...                 SSH port (default: 2022)
   RDMA_MODE=infiniband|ethernet     Filter RDMA devices by link_layer (default: infiniband)
   SAME_NETWORK_TRACK=true|false     Require client/server IPs in same subnet (default: true)
-  SAME_RAIL_ONLY=true|false         Only test client_dev == server_dev (default: false)
+  SAME_RAIL_ONLY=true|false         Only test client_dev == server_dev (default: true)
   TESTS="tag_lat tag_bw"            Which tests to run (default: "tag_lat tag_bw")
   NUM_ITERS=2000|...                Iterations per test (default: 10000)
   LAT_MSG_SIZE=64|...               tag_lat message size (default: 64)
@@ -79,16 +79,69 @@ rawlog() {
     printf '%s\n' "$*" >>"${TMP_RAW_LOG}"
 }
 
+ssh_base_cmd() {
+    local host=$1
+    shift || true
+    ssh \
+        -T \
+        -o BatchMode=yes \
+        -o ConnectTimeout=5 \
+        -o ServerAliveInterval=5 \
+        -o ServerAliveCountMax=1 \
+        -p "${SSH_PORT}" \
+        "${SSH_USER}@${host}" \
+        "$@"
+}
+
+ssh_run() {
+    local host=$1
+    shift || true
+    ssh_base_cmd "${host}" "$@"
+}
+
+fatal() {
+    log "[UCX][Fatal] $*"
+    exit 1
+}
+
+is_fatal_runtime_error() {
+    local file=${1:-""}
+    [ -n "${file}" ] && [ -f "${file}" ] || return 1
+    grep -qiE 'ssh: |connection refused|permission denied|no route to host|could not resolve hostname|command not found|No such file or directory|not found|Connection closed|Operation timed out|timed out' "${file}" 2>/dev/null
+}
+
+tail_one_line() {
+    local file=${1:-""}
+    if [ -n "${file}" ] && [ -f "${file}" ]; then
+        tail -n 1 "${file}" 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | sed 's/^ //; s/ $//'
+    fi
+}
+
+ssh_precheck_host() {
+    local host=$1
+    local out_file="${WORKDIR}/ssh_${host}.out"
+    local err_file="${WORKDIR}/ssh_${host}.err"
+    : >"${out_file}"
+    : >"${err_file}"
+
+    if ssh_run "${host}" "/bin/sh -c 'echo __TESTUCX_SSH_OK__ ; command -v ip >/dev/null 2>&1'" >"${out_file}" 2>"${err_file}"; then
+        if grep -q '__TESTUCX_SSH_OK__' "${out_file}"; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 REMOTE_SERVER_PIDS=()
 
 stop_remote_server() {
     local host=$1
     local pid=${2:-""}
     if [ -n "${pid}" ]; then
-        ssh -p "${SSH_PORT}" "${SSH_USER}@${host}" "kill -9 ${pid} >/dev/null 2>&1 || true" >/dev/null 2>&1 || true
+        ssh_run "${host}" "kill -9 ${pid} >/dev/null 2>&1 || true" >/dev/null 2>&1 || true
         return 0
     fi
-    ssh -p "${SSH_PORT}" "${SSH_USER}@${host}" "pkill -9 ucx_perftest >/dev/null 2>&1 || true" >/dev/null 2>&1 || true
+    ssh_run "${host}" "pkill -9 ucx_perftest >/dev/null 2>&1 || true" >/dev/null 2>&1 || true
 }
 
 cleanup() {
@@ -154,7 +207,31 @@ PY
 
 remote_rdma_info() {
     local host=$1
-    ssh -p "${SSH_PORT}" "${SSH_USER}@${host}" "env RDMA_MODE=${RDMA_MODE} bash -lc 'MODE=\"\${RDMA_MODE:-infiniband}\"; for d in \$(ls /sys/class/infiniband 2>/dev/null | sort); do ll=\$(cat /sys/class/infiniband/\$d/ports/1/link_layer 2>/dev/null || echo); if [ \"\$MODE\" = \"infiniband\" ] && [ \"\$ll\" != \"InfiniBand\" ]; then continue; fi; if [ \"\$MODE\" = \"ethernet\" ] && [ \"\$ll\" != \"Ethernet\" ]; then continue; fi; iface=\$(ls /sys/class/infiniband/\$d/device/net 2>/dev/null | head -n1); [ -n \"\$iface\" ] || continue; pair=\$(ip -4 addr show dev \"\$iface\" 2>/dev/null | sed -n '\''s/.* inet \([0-9.][0-9.]*\)\/[0-9][0-9]*.*/\1/p'\'' | head -n1); mask=\$(ip -4 addr show dev \"\$iface\" 2>/dev/null | sed -n '\''s/.* inet [0-9.][0-9.]*\/\([0-9][0-9]*\).*/\1/p'\'' | head -n1); [ -n \"\$pair\" ] || continue; [ -n \"\$mask\" ] || continue; echo \"\$d \$iface \$pair \$mask \$ll\"; done'" 2>/dev/null || true
+    local debug_file="${WORKDIR}/rdma_${host}.debug"
+    : >"${debug_file}"
+    ssh_run "${host}" "bash -s -- '${RDMA_MODE}'" 2>"${debug_file}" <<'EOF' || true
+MODE="${1:-infiniband}"
+
+for d in $(ls /sys/class/infiniband 2>/dev/null | sort); do
+    ll=$(cat "/sys/class/infiniband/${d}/ports/1/link_layer" 2>/dev/null || echo "")
+    if [ "${MODE}" = "infiniband" ] && [ "${ll}" != "InfiniBand" ]; then
+        continue
+    fi
+    if [ "${MODE}" = "ethernet" ] && [ "${ll}" != "Ethernet" ]; then
+        continue
+    fi
+
+    iface=$(ls "/sys/class/infiniband/${d}/device/net" 2>/dev/null | head -n1)
+    [ -n "${iface}" ] || continue
+
+    pair=$(ip -4 -o addr show dev "${iface}" 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1)
+    mask=$(ip -4 -o addr show dev "${iface}" 2>/dev/null | awk '{print $4}' | cut -d/ -f2 | head -n1)
+    [ -n "${pair}" ] || continue
+    [ -n "${mask}" ] || continue
+
+    echo "${d} ${iface} ${pair} ${mask} ${ll}"
+done
+EOF
 }
 
 wait_remote_server_ready() {
@@ -164,13 +241,13 @@ wait_remote_server_ready() {
 
     local i
     for i in $(seq 1 50); do
-        if ! ssh -p "${SSH_PORT}" "${SSH_USER}@${host}" "kill -0 ${pid} 2>/dev/null" >/dev/null 2>&1; then
+        if ! ssh_run "${host}" "kill -0 ${pid} 2>/dev/null" >/dev/null 2>&1; then
             return 1
         fi
-        if ssh -p "${SSH_PORT}" "${SSH_USER}@${host}" "ss -ltn 2>/dev/null | awk '{print \$4}' | grep -qE '(:|\\.)${port}$'" >/dev/null 2>&1; then
+        if ssh_run "${host}" "ss -ltn 2>/dev/null | awk '{print \$4}' | grep -qE '(:|\\.)${port}$'" >/dev/null 2>&1; then
             return 0
         fi
-        if ssh -p "${SSH_PORT}" "${SSH_USER}@${host}" "netstat -ltn 2>/dev/null | awk '{print \$4}' | grep -qE '(:|\\.)${port}$'" >/dev/null 2>&1; then
+        if ssh_run "${host}" "netstat -ltn 2>/dev/null | awk '{print \$4}' | grep -qE '(:|\\.)${port}$'" >/dev/null 2>&1; then
             return 0
         fi
         sleep 0.1
@@ -213,35 +290,43 @@ run_pair_case() {
         local server_log="${WORKDIR}/server_${server_host}_${server_dev}_${test}_${port}.log"
         local client_log="${WORKDIR}/client_${client_host}_${client_dev}_${test}_${port}.log"
         local remote_server_log="/tmp/ucx_server_output_${server_dev}_${test}_${port}.log"
+        local remote_server_debug="${WORKDIR}/server_${server_host}_${server_dev}_${test}_${port}.debug"
 
         rawlog "=== START TEST: ${client_host}(${client_dev}/${client_ip}) -> ${server_host}(${server_dev}/${server_ip}) ${test} port=${port} ==="
         log "[UCX] ${client_host}(${client_dev}/${client_ip}) -> ${server_host}(${server_dev}/${server_ip}) test=${test} port=${port}"
 
         local pid
-        pid=$(ssh -p "${SSH_PORT}" "${SSH_USER}@${server_host}" "env UCX_NET_DEVICES=${server_dev}:1 nohup ucx_perftest -p ${port} -t ${test} -s ${size} -n ${NUM_ITERS} -f >${remote_server_log} 2>&1 & echo \$!" 2>/dev/null || echo "")
+        : >"${remote_server_debug}"
+        pid=$(ssh_run "${server_host}" "env UCX_NET_DEVICES=${server_dev}:1 nohup ucx_perftest -p ${port} -t ${test} -s ${size} -n ${NUM_ITERS} -f >${remote_server_log} 2>&1 & echo \$!" 2>"${remote_server_debug}" || echo "")
         if [ -z "${pid}" ]; then
-            NEW_JSON=$(jq -n --arg test "${test}" --arg client "${client_host}" --arg server "${server_host}" --arg err "failed to start server" '{pair:{client:$client,server:$server},test_type:$test,status:"FAILED",error:$err}')
-            echo "$(jq --argjson new "${NEW_JSON}" '. += [$new]' "${REPORT_FILE}")" >"${REPORT_FILE}"
-            log "[UCX][Error] failed to start server on ${server_host} dev=${server_dev}"
-            rawlog "=== END TEST: ${test} ==="
-            return 0
+            fatal "failed to start server on ${server_host} dev=${server_dev}: $(tail_one_line "${remote_server_debug}")"
         fi
         REMOTE_SERVER_PIDS+=("${server_host}:${pid}")
 
         if ! wait_remote_server_ready "${server_host}" "${port}" "${pid}"; then
-            debug_log "[UCX][Debug] server not ready after wait; continuing anyway (host=${server_host} port=${port} pid=${pid})"
+            ssh_run "${server_host}" "cat ${remote_server_log} 2>/dev/null || true" >"${server_log}" 2>"${remote_server_debug}" || true
+            fatal "server not ready on ${server_host} dev=${server_dev} port=${port} pid=${pid}: $(tail_one_line "${server_log}") $(tail_one_line "${remote_server_debug}")"
         fi
 
         debug_log "[UCX][Debug] server_pid=${pid} remote_server_log=${remote_server_log}"
         debug_log "[UCX][Debug] client_cmd: UCX_NET_DEVICES=${client_dev}:1 ucx_perftest ${server_ip} -p ${port} -t ${test} -s ${size} -n ${NUM_ITERS}"
-        ssh -p "${SSH_PORT}" "${SSH_USER}@${client_host}" "env UCX_NET_DEVICES=${client_dev}:1 ucx_perftest ${server_ip} -p ${port} -t ${test} -s ${size} -n ${NUM_ITERS}" >"${client_log}" 2>&1 || true
+        if ! ssh_run "${client_host}" "env UCX_NET_DEVICES=${client_dev}:1 ucx_perftest ${server_ip} -p ${port} -t ${test} -s ${size} -n ${NUM_ITERS}" >"${client_log}" 2>&1; then
+            stop_remote_server "${server_host}" "${pid}"
+            ssh_run "${server_host}" "cat ${remote_server_log} 2>/dev/null || true" >"${server_log}" 2>&1 || true
+            if is_fatal_runtime_error "${client_log}" || is_fatal_runtime_error "${server_log}"; then
+                fatal "client/server runtime failure for ${test} ${client_host}(${client_dev}) -> ${server_host}(${server_dev}): client='$(tail_one_line "${client_log}")' server='$(tail_one_line "${server_log}")'"
+            fi
+        fi
 
         stop_remote_server "${server_host}" "${pid}"
-        ssh -p "${SSH_PORT}" "${SSH_USER}@${server_host}" "cat ${remote_server_log} 2>/dev/null || true" >"${server_log}" 2>&1 || true
+        ssh_run "${server_host}" "cat ${remote_server_log} 2>/dev/null || true" >"${server_log}" 2>&1 || true
 
         local metric
         metric=$(parse_ucx_output "${test}" "${client_log}" 2>/dev/null || echo "")
         if [ -z "${metric}" ]; then
+            if is_fatal_runtime_error "${client_log}" || is_fatal_runtime_error "${server_log}"; then
+                fatal "fatal runtime error while parsing ${test} ${client_host}(${client_dev}) -> ${server_host}(${server_dev}): client='$(tail_one_line "${client_log}")' server='$(tail_one_line "${server_log}")'"
+            fi
             local err
             err=$(tail -n 1 "${client_log}" 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | sed 's/^ //; s/ $//' )
             log "[UCX][Fail] ${test} ${client_host}(${client_dev}) -> ${server_host}(${server_dev}) : ${err}"
@@ -414,12 +499,45 @@ echo "  - SAME_TRACK:  ${SAME_NETWORK_TRACK}"
 echo "  - RDMA_MODE:   ${RDMA_MODE}"
 echo "  - DEBUG:       ${DEBUG}"
 
+echo "=== [UCX PREFLIGHT: SSH] ==="
+ssh_ok_hosts=0
+for host in "${HOSTS[@]}"; do
+    if ssh_precheck_host "${host}"; then
+        ssh_ok_hosts=$((ssh_ok_hosts + 1))
+        echo "  - ${host}: OK"
+        if [ "${DEBUG}" = "true" ]; then
+            debug_log "[UCX][Debug] ssh_${host}.out:"
+            debug_log "$(cat "${WORKDIR}/ssh_${host}.out" 2>/dev/null || true)"
+        fi
+    else
+        echo "  - ${host}: FAIL"
+        log "[UCX][Error] SSH precheck failed for ${host} on port ${SSH_PORT}"
+        log "[UCX][Error] ssh stderr: $(tail_one_line "${WORKDIR}/ssh_${host}.err")"
+        if [ "${DEBUG}" = "true" ]; then
+            debug_log "[UCX][Debug] ssh_${host}.out:"
+            debug_log "$(cat "${WORKDIR}/ssh_${host}.out" 2>/dev/null || true)"
+            debug_log "[UCX][Debug] ssh_${host}.err:"
+            debug_log "$(cat "${WORKDIR}/ssh_${host}.err" 2>/dev/null || true)"
+        fi
+    fi
+done
+
+if [ "${ssh_ok_hosts}" -lt "${NUM}" ]; then
+    fatal "SSH precheck failed (${ssh_ok_hosts}/${NUM} reachable). Verify rdma-tools containers are running with the default /entry.sh and that sshd is listening on SSH_PORT=${SSH_PORT}."
+fi
+
+echo "=== [UCX PREFLIGHT: RDMA DISCOVERY] ==="
+
 total_hosts_ok=0
 for host in "${HOSTS[@]}"; do
     info=$(remote_rdma_info "${host}")
     printf '%s\n' "${info}" >"${WORKDIR}/rdma_${host}.txt"
     if [ ! -s "${WORKDIR}/rdma_${host}.txt" ]; then
         log "[UCX][Error] failed to collect RDMA info from ${host} (no IB device with IPv4 found, or ssh failed)"
+        if [ "${DEBUG}" = "true" ]; then
+            debug_log "[UCX][Debug] discovery stderr: ${WORKDIR}/rdma_${host}.debug"
+            debug_log "$(cat "${WORKDIR}/rdma_${host}.debug" 2>/dev/null || true)"
+        fi
     fi
     if [ -s "${WORKDIR}/rdma_${host}.txt" ]; then
         total_hosts_ok=$((total_hosts_ok + 1))
@@ -433,6 +551,7 @@ done
 if [ "${total_hosts_ok}" -lt 2 ]; then
     log "[UCX][Error] not enough hosts with usable RDMA IPv4 info (ok=${total_hosts_ok}/${NUM})."
     log "[UCX][Hint] ensure RDMA netdevs have IPv4 addresses, or set SAME_NETWORK_TRACK=false if you want cross-subnet pairing."
+    fatal "RDMA discovery failed before any runnable pair was found. Check ${WORKDIR}/rdma_<host>.debug and verify SSH_PORT=${SSH_PORT}."
 fi
 
 i=0
@@ -445,13 +564,14 @@ while [ "${i}" -lt "${NUM}" ]; do
     i=$((i + 2))
 done
 
+if [ "${total_executed}" -eq 0 ]; then
+    fatal "no runnable host pairs were executed after RDMA discovery/filtering. Check SAME_NETWORK_TRACK, SAME_RAIL_ONLY, RDMA_MODE, and ${WORKDIR}/rdma_<host>.txt."
+fi
+
 finalize_report
 
 if [ "$(jq 'length' "${REPORT_FILE}" 2>/dev/null || echo 0)" -eq 0 ]; then
-    log "[UCX][Warn] report is empty: no runnable cases matched."
-    log "[UCX][Hint] set DEBUG=true to see RDMA discovery and filtering details."
-    log "[UCX][Hint] set SAME_NETWORK_TRACK=false to test cross-subnet pairs."
-    log "[UCX][Hint] check ${WORKDIR}/rdma_<host>.txt for discovered IB dev/ip." 
+    fatal "report is empty: no runnable cases matched. Check DEBUG logs, SAME_NETWORK_TRACK, and ${WORKDIR}/rdma_<host>.txt."
 fi
 
 echo -e "\n======================= BENCHMARK REPORT ======================="

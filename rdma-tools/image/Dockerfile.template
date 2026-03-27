@@ -62,17 +62,22 @@ RUN mkdir /buildGdrcopy || true
 RUN mkdir /buildNvbandwidth || true 
 RUN mkdir /buildCudaSample || true 
 RUN mkdir /buildnccltest || true 
+##DEEPEP_BEGIN
 RUN mkdir /buildDeepEP || true 
 RUN mkdir /buildDeepGEMM || true 
 RUN mkdir -p /opt/deepep-tests || true 
 RUN mkdir -p /opt/deepep-src || true 
 RUN mkdir -p /opt/deepgemm-src || true 
+##DEEPEP_END
 RUN mkdir -p /opt/nvshmem || true 
 
 COPY /install-tools.sh /install-tools.sh
+##DEEPEP_BEGIN
 COPY /install-deepep.sh /install-deepep.sh
+##DEEPEP_END
 COPY /install-ucx.sh /install-ucx.sh
 
+##DEEPEP_BEGIN
 RUN chmod +x /install-tools.sh \
     && ENV_INSTALL_MODE=buildtools-deepep /install-tools.sh \
     && rm -f /install-tools.sh
@@ -81,6 +86,14 @@ RUN chmod +x /install-deepep.sh \
     && /install-deepep.sh \
     && chmod +x /install-ucx.sh \
     && /install-ucx.sh
+##DEEPEP_END
+
+##NO_DEEPEP_BEGIN
+RUN chmod +x /install-tools.sh \
+    && rm -f /install-tools.sh \
+    && chmod +x /install-ucx.sh \
+    && /install-ucx.sh
+##NO_DEEPEP_END
 
 #========== root image ==============
 FROM <<ENV_BASEIMAGE_FULL_NAME>> AS rootfs
@@ -125,12 +138,17 @@ RUN apt-get update
 COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
 COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
+##DEEPEP_BEGIN
+COPY --from=buildtools /opt/DeepEP            /opt/DeepEP
+##DEEPEP_END
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
 COPY --from=buildtools /buildNvbandwidth/*     /usr/bin/
 COPY --from=buildtools /usr/local/bin/tcpdump  /usr/local/bin/tcpdump
+##DEEPEP_BEGIN
 COPY --from=buildtools /buildDeepEP           /buildDeepEP
 COPY --from=buildtools /buildDeepGEMM         /buildDeepGEMM
+##DEEPEP_END
 COPY --from=buildtools /buildUcxRootfs/usr/local/ /usr/local/
 COPY --from=buildtools /opt/nvshmem          /opt/nvshmem
 
