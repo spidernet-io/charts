@@ -263,7 +263,7 @@ InstallSSH
   pip3 install /buildDeepEP/*.whl /buildDeepGEMM/*.whl --force-reinstall
   python3 - <<'PY'
 import importlib
-modules = ["deepep", "deep_gemm"]
+modules = ["deep_ep", "deep_gemm"]
 for name in modules:
     mod = importlib.import_module(name)
     print(f"validated import: {name} -> {getattr(mod, '__file__', '')}")
@@ -273,7 +273,7 @@ PY
   echo "/opt/nvshmem/lib" > /etc/ld.so.conf.d/nvshmem.conf
   ldconfig
 
-  ln -sf /usr/lib/$(uname -m)-linux-gnu/libmlx5.so.1 /usr/lib/$(uname -m)-linux-gnu/libmlx5.so
+  ln -sf "/usr/lib/$(uname -m)-linux-gnu/libmlx5.so.1" "/usr/lib/$(uname -m)-linux-gnu/libmlx5.so"
 fi
 
 apt-get purge --auto-remove
