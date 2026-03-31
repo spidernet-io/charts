@@ -4,7 +4,7 @@ env:
   CHART_PATH: rdma-tools/chart
   DOCKERFILE_PATH: rdma-tools/image
   IMAGE_NAME: rdma-tools
-  BUILD_PLATFORM: linux/amd64
+  BUILD_PLATFORM: linux/amd64,linux/arm64
   GEN_DOCKERFILE_SCRIPT: rdma-tools/image/generateDockerfile.sh
   CODE_SHA: ''
 
