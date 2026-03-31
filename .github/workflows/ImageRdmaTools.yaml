@@ -46,7 +46,7 @@ jobs:
         run: |
           echo '${{ toJSON(github) }}'
           echo "image_name=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
-          echo "build_platform=linux/amd64" >> $GITHUB_ENV
+          echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
           echo "upload_artifact=false" >> $GITHUB_ENV
           echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
           echo "generateDockerfileScript=${{ env.GEN_DOCKERFILE_SCRIPT }}" >> $GITHUB_ENV
@@ -130,7 +130,7 @@ jobs:
         run: |
           echo '${{ toJSON(github) }}'
           echo "image_name=${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
-          echo "build_platform=linux/amd64" >> $GITHUB_ENV
+          echo "build_platform=linux/amd64,linux/arm64" >> $GITHUB_ENV
           echo "upload_artifact=false" >> $GITHUB_ENV
           echo "dockerfile_dirctory=${{ env.DOCKERFILE_PATH }}" >> $GITHUB_ENV
           echo "generateDockerfileScript=${{ env.GEN_DOCKERFILE_SCRIPT }}" >> $GITHUB_ENV
