@@ -15,6 +15,27 @@ echo "VAR_NCCL_BASE=${VAR_NCCL_BASE}"
 echo "DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY}"
 echo "BASE_GOLANG_IMAGE=${BASE_GOLANG_IMAGE}"
 
+TARGET_ARCH_RESOLVED=${ENV_TARGET_ARCH:-${TARGET_ARCH:-${TARGETARCH:-$(dpkg --print-architecture 2>/dev/null || uname -m)}}}
+case "${TARGET_ARCH_RESOLVED}" in
+    amd64|x86_64)
+        TARGET_ARCH_CANONICAL=amd64
+        DEFAULT_HPCX_ARCH=x86_64
+        DEFAULT_CUDA_REPO_ARCH=x86_64
+        DEFAULT_SYSTEM_LIB_DIR=/usr/lib/x86_64-linux-gnu
+        ;;
+    arm64|aarch64)
+        TARGET_ARCH_CANONICAL=arm64
+        DEFAULT_HPCX_ARCH=aarch64
+        DEFAULT_CUDA_REPO_ARCH=sbsa
+        DEFAULT_SYSTEM_LIB_DIR=/usr/lib/aarch64-linux-gnu
+        ;;
+    *)
+        echo "unsupported target architecture: ${TARGET_ARCH_RESOLVED}" >&2
+        exit 1
+        ;;
+esac
+export ENV_TARGET_ARCH=${TARGET_ARCH_CANONICAL}
+
 # https://hub.docker.com/r/nvidia/cuda
 # nvidia/cuda:12.5.1-cudnn-runtime-ubuntu22.04
 
@@ -24,16 +45,22 @@ if [ "$VAR_NCCL_BASE" == "true" ] ; then
     export ENV_BASEIMAGE_OS_VERISON=${ENV_BASEIMAGE_OS_VERISON:-"ubuntu22.04"}
     export ENV_BASEIMAGE_FULL_NAME=${DOCKER_IMAGE_REGISTRY}/nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-runtime-${ENV_BASEIMAGE_OS_VERISON}
     export ENV_BUILD_TOOLS_IMAGE_NAME=${DOCKER_IMAGE_REGISTRY}/nvidia/cuda:${ENV_BASEIMAGE_CUDA_VERISON}-cudnn-devel-${ENV_BASEIMAGE_OS_VERISON}
+    HPCX_ARCH=${ENV_HPCX_ARCH:-${HPCX_ARCH:-${DEFAULT_HPCX_ARCH}}}
+    CUDA_REPO_ARCH=${ENV_CUDA_REPO_ARCH:-${CUDA_REPO_ARCH:-${DEFAULT_CUDA_REPO_ARCH}}}
+    SYSTEM_LIB_DIR=${ENV_SYSTEM_LIB_DIR:-${SYSTEM_LIB_DIR:-${DEFAULT_SYSTEM_LIB_DIR}}}
+    export ENV_HPCX_ARCH=${HPCX_ARCH}
+    export ENV_CUDA_REPO_ARCH=${CUDA_REPO_ARCH}
+    export ENV_SYSTEM_LIB_DIR=${SYSTEM_LIB_DIR}
     #
     export ENV_INSTALL_HPCX=true
     # https://developer.nvidia.com/networking/hpc-x
     export ENV_VERSION_HPCX=${ENV_VERSION_HPCX:-"v2.19"}
-    export ENV_DOWNLOAD_HPCX_URL="https://content.mellanox.com/hpc/hpc-x/${ENV_VERSION_HPCX}/hpcx-${ENV_VERSION_HPCX}-gcc-mlnx_ofed-${ENV_BASEIMAGE_OS_VERISON}-cuda12-x86_64.tbz"
+    export ENV_DOWNLOAD_HPCX_URL="https://content.mellanox.com/hpc/hpc-x/${ENV_VERSION_HPCX}/hpcx-${ENV_VERSION_HPCX}-gcc-mlnx_ofed-${ENV_BASEIMAGE_OS_VERISON}-cuda12-${HPCX_ARCH}.tbz"
     # https://github.com/NVIDIA/nccl-tests/tags
     export ENV_VERSION_NCCLTEST=${ENV_VERSION_NCCLTEST:-"v2.13.10"}
     # NCCL 2.22.3, for CUDA 12.5, ubuntu 22.04
     # https://developer.nvidia.com/cuda-downloads
-    export ENV_CUDA_DEB_SOURCE="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb"
+    export ENV_CUDA_DEB_SOURCE="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/${CUDA_REPO_ARCH}/cuda-keyring_1.0-1_all.deb"
     # https://github.com/NVIDIA/nvbandwidth
     # 2024.8.14
     export ENV_VERSION_NVBANDWIDTH=${ENV_VERSION_NVBANDWIDTH:-"v0.5"}
@@ -45,7 +72,7 @@ if [ "$VAR_NCCL_BASE" == "true" ] ; then
     export ENV_VERSION_CUDA_SAMPLE=${ENV_VERSION_CUDA_SAMPLE:-"v12.8"}
 
     # https://github.com/NVIDIA/nvshmem/tags
-    export ENV_NVSHMEM_VERSION=${ENV_NVSHMEM_VERSION:-"3.4.5"}
+    export ENV_NVSHMEM_VERSION=${ENV_NVSHMEM_VERSION:-"v3.4.5-0"}
     # CMake CUDA architectures list (e.g., 90 for Hopper, 100 for Blackwell)
     export ENV_CMAKE_CUDA_ARCHITECTURES=${ENV_CMAKE_CUDA_ARCHITECTURES:-"90;100"}
 else
@@ -67,7 +94,7 @@ else
 fi 
 
 export ENV_BUILD_GOLANG_SERVER_IMAGE_NAME=${DOCKER_IMAGE_REGISTRY}/${BASE_GOLANG_IMAGE}
-export ENV_DEEPEP_VERSION=${ENV_DEEPEP_VERSION:-"9af0e0d0e74f3577af1979c9b9e1ac2cad0104ee"}
+export ENV_DEEPEP_VERSION=${ENV_DEEPEP_VERSION:-"v1.2.1"}
 export ENV_DEEPGEMM_VERSION=${ENV_DEEPGEMM_VERSION:-"nv_dev_4ff3f54"}
 export ENV_UCX_VERSION=${ENV_UCX_VERSION:-"v1.19.1"}
 export ENV_INSTALL_CUDA_TOOLKIT=${ENV_INSTALL_CUDA_TOOLKIT:-"true"}
@@ -80,9 +107,13 @@ export ENV_TORCH_CUDA_ARCH_LIST=${ENV_TORCH_CUDA_ARCH_LIST:-"9.0;10.0"}
 # for cuda and libgdrapi.so
 if [ -n "${ENV_BASEIMAGE_CUDA_VERISON}" ] ; then
     CUDA_SHORT=$(echo "${ENV_BASEIMAGE_CUDA_VERISON}" | cut -d. -f1,2)
-    export ENV_LD_LIBRARY_PATH="/usr/local/cuda-${CUDA_SHORT}/compat:/usr/lib/x86_64-linux-gnu"
+    SYSTEM_LIB_DIR=${ENV_SYSTEM_LIB_DIR:-""}
+    SYSTEM_LIB_DIR=${SYSTEM_LIB_DIR:-${DEFAULT_SYSTEM_LIB_DIR}}
+    export ENV_LD_LIBRARY_PATH="/usr/local/cuda-${CUDA_SHORT}/compat:${SYSTEM_LIB_DIR}"
 else
-    export ENV_LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu"
+    SYSTEM_LIB_DIR=${ENV_SYSTEM_LIB_DIR:-""}
+    SYSTEM_LIB_DIR=${SYSTEM_LIB_DIR:-${DEFAULT_SYSTEM_LIB_DIR}}
+    export ENV_LD_LIBRARY_PATH="${SYSTEM_LIB_DIR}"
 fi
 
 # https://github.com/linux-rdma/perftest

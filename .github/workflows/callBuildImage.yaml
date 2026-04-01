@@ -42,7 +42,7 @@ permissions: write-all
 
 jobs:
   build-and-push:
-    timeout-minutes: 60
+    timeout-minutes: 80
     environment: release-base-images
     runs-on: ubuntu-latest
     outputs:

@@ -263,11 +263,12 @@ InstallSSH
   pip3 install /buildDeepEP/*.whl /buildDeepGEMM/*.whl --force-reinstall
   python3 - <<'PY'
 import importlib
-modules = ["deepep", "deep_gemm"]
+modules = ["deep_ep", "deep_gemm"]
 for name in modules:
     mod = importlib.import_module(name)
     print(f"validated import: {name} -> {getattr(mod, '__file__', '')}")
 PY
+  rm -rf /buildDeepEP /buildDeepGEMM
 
   echo "/usr/local/lib" > /etc/ld.so.conf.d/ucx.conf
   echo "/opt/nvshmem/lib" > /etc/ld.so.conf.d/nvshmem.conf
