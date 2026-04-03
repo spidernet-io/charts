@@ -21,7 +21,7 @@ permissions: write-all
 
 jobs:
   pull-and-push:
-    timeout-minutes: 80
+    timeout-minutes: 120
     environment: release-base-images
     runs-on: ubuntu-latest
     steps:
