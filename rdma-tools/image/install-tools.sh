@@ -268,6 +268,7 @@ for name in modules:
     mod = importlib.import_module(name)
     print(f"validated import: {name} -> {getattr(mod, '__file__', '')}")
 PY
+  rm -rf /buildDeepEP /buildDeepGEMM
 
   echo "/usr/local/lib" > /etc/ld.so.conf.d/ucx.conf
   echo "/opt/nvshmem/lib" > /etc/ld.so.conf.d/nvshmem.conf

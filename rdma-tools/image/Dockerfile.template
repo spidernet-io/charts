@@ -140,6 +140,7 @@ COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
 ##DEEPEP_BEGIN
 COPY --from=buildtools /opt/DeepEP            /opt/DeepEP
+COPY --from=buildtools /opt/DeepGEMM          /opt/DeepGEMM
 ##DEEPEP_END
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
@@ -179,10 +180,14 @@ ENV OMPI_HOME=/opt/hpcx/ompi
 ENV MPI_HOME=/opt/hpcx/ompi
 ENV OSHMEM_HOME=/opt/hpcx/ompi
 ENV OPAL_PREFIX=/opt/hpcx/ompi
+ENV DEEPEP_DIR=/opt/DeepEP
+ENV DEEPGEMM_DIR=/opt/DeepGEMM
+ENV NVSHMEM_DIR=/opt/nvshmem
+ENV TORCH_LIB_DIR=/usr/local/lib/python3.10/dist-packages/torch/lib
 ENV OLD_PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV PATH=/opt/hpcx/sharp/bin:/opt/hpcx/clusterkit/bin:/opt/hpcx/hcoll/bin:/opt/hpcx/ucc/bin:/opt/hpcx/ucx/bin:/opt/hpcx/ompi/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV OLD_LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:<<ENV_LD_LIBRARY_PATH>>
-ENV LD_LIBRARY_PATH=<<ENV_LD_LIBRARY_PATH>>:/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ucc/lib/ucc:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib/ucx:/opt/hpcx/ucx/lib:/opt/hpcx/sharp/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+ENV LD_LIBRARY_PATH=<<ENV_LD_LIBRARY_PATH>>:/usr/local/lib/python3.10/dist-packages/torch/lib:/opt/nvshmem/lib:/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ucc/lib/ucc:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib/ucx:/opt/hpcx/ucx/lib:/opt/hpcx/sharp/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 ENV OLD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs
 ENV LIBRARY_PATH=/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ompi/lib:/opt/hpcx/sharp/lib:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/cuda/lib64/stubs
 ENV OLD_CPATH=""

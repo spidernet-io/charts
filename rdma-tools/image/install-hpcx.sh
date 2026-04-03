@@ -15,18 +15,36 @@ if [ "${ENV_INSTALL_HPCX}" == "false" ] ; then
     exit 0
 fi
 
+ARCH=$(dpkg --print-architecture)
+
 echo "--------------- install hpxc -------------------"
 # example : ENV_DOWNLOAD_HPCX_URL=https://content.mellanox.com/hpc/hpc-x/v2.19/hpcx-v2.19-gcc-mlnx_ofed-ubuntu22.04-cuda12-x86_64.tbz
 HPCX_DEST_DIR="/opt/hpcx"
-HPCX_DISTRIBUTION=$( echo "${ENV_DOWNLOAD_HPCX_URL}" | awk -F'/' '{print $NF}' | sed 's?.tbz??'  )
-echo "download ${HPCX_DISTRIBUTION} from ${ENV_DOWNLOAD_HPCX_URL}"
+
+case "${ARCH}" in
+    amd64)
+        HPCX_ARCH=x86_64
+        ;;
+    arm64)
+        HPCX_ARCH=aarch64
+        ;;
+    *)
+        echo "unsupported architecture for HPCX install: ${ARCH}" >&2
+        exit 1
+        ;;
+esac
+
+# Rewrite URL arch suffix to match actual build architecture.
+# This allows a single committed Dockerfile to work for both x86_64 and arm64 buildx builds.
+HPCX_URL=$(echo "${ENV_DOWNLOAD_HPCX_URL}" | sed "s/-x86_64\.tbz/-${HPCX_ARCH}.tbz/;s/-aarch64\.tbz/-${HPCX_ARCH}.tbz/")
+HPCX_DISTRIBUTION=$(echo "${HPCX_URL}" | awk -F'/' '{print $NF}' | sed 's?.tbz??')
+echo "download ${HPCX_DISTRIBUTION} from ${HPCX_URL}"
 
 cd /tmp
-wget -q -O - ${ENV_DOWNLOAD_HPCX_URL} | tar xjf -
+wget -q -O - ${HPCX_URL} | tar xjf -
 grep -IrlF "/build-result/${HPCX_DISTRIBUTION}" ${HPCX_DISTRIBUTION} | xargs -rd'\n' sed -i -e "s:/build-result/${HPCX_DISTRIBUTION}:${HPCX_DEST_DIR}:g"
 sed -i -E 's?mydir=.*?mydir='"${HPCX_DEST_DIR}"'?' ${HPCX_DISTRIBUTION}/hpcx-init.sh
 mv ${HPCX_DISTRIBUTION} ${HPCX_DEST_DIR}
-
 
 echo "--------------- install nccltest -------------------"
 echo "build nccl test version ${ENV_VERSION_NCCLTEST}"
@@ -37,7 +55,6 @@ cd nccl-tests*
 source ${HPCX_DEST_DIR}/hpcx-init.sh
 hpcx_load
 make BUILDDIR=/buildnccltest MPI=1 CUDA_HOME=/usr/local/cuda
-
 
 echo "--------------- install Bandwidthtest -------------------"
 echo "build cuda sample: ${ENV_VERSION_CUDA_SAMPLE}"

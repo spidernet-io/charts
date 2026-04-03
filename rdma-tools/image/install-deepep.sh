@@ -23,7 +23,7 @@ python3 -m pip install --upgrade pip --retries "${PIP_RETRIES}" --timeout "${PIP
 TORCH_WHL_INDEX_URL=${TORCH_WHL_INDEX_URL:-"https://download.pytorch.org/whl/cu${CU_VER}"}
 pip3 install torch numpy packaging --extra-index-url "${TORCH_WHL_INDEX_URL}" --retries "${PIP_RETRIES}" --timeout "${PIP_TIMEOUT}" --no-cache-dir
 
-NVSHMEM_VERSION_RAW=${ENV_NVSHMEM_VERSION:-"3.4.5"}
+NVSHMEM_VERSION_RAW=${ENV_NVSHMEM_VERSION:-"v3.4.5-0"}
 NVSHMEM_VERSION=${NVSHMEM_VERSION_RAW#v}
 NVSHMEM_VERSION=${NVSHMEM_VERSION%-*}
 
@@ -50,14 +50,26 @@ fi
 cp -a "${NVSHMEM_EXTRACT_ROOT}/"* /opt/nvshmem/
 rm -rf /tmp/nvshmem-extract
 
+if [ ! -f /opt/nvshmem/lib/libnvshmem_host.so ] ; then
+  echo "NVSHMEM install did not produce /opt/nvshmem/lib/libnvshmem_host.so"
+  exit 1
+fi
+
+rm -rf /buildDeepEP /buildDeepGEMM || true
+mkdir -p /buildDeepEP /buildDeepGEMM
+
 rm -rf /tmp/deepep || true
 mkdir -p /tmp/deepep
 cd /tmp/deepep
 curl -fsSL -o DeepEP.zip https://${ENV_GITHUB_ARTIFACTORY}/deepseek-ai/DeepEP/archive/${ENV_DEEPEP_VERSION}.zip
 unzip DeepEP.zip
 rm -rf /opt/DeepEP || true
-mv DeepEP-${ENV_DEEPEP_VERSION} /opt/DeepEP
-DEEPEP_NVSHMEM_PATCH=/opt/DeepEP/third-party/nvshmem.patch
+DEEPEP_EXTRACT_DIR=$(find /tmp/deepep -mindepth 1 -maxdepth 1 -type d -name 'DeepEP-*' | head -n 1)
+if [ -z "${DEEPEP_EXTRACT_DIR}" ] ; then
+  echo "Failed to find extracted DeepEP source directory under /tmp/deepep"
+  exit 1
+fi
+mv "${DEEPEP_EXTRACT_DIR}" /opt/DeepEP
 
 if ls /buildGdrcopy/libgdrapi_*.deb >/dev/null 2>&1 ; then
   dpkg -i /buildGdrcopy/libgdrapi_*.deb
@@ -70,6 +82,33 @@ export TORCH_CUDA_ARCH_LIST="${ENV_TORCH_CUDA_ARCH_LIST}"
 export NVSHMEM_DIR=/opt/nvshmem
 export CFLAGS="${CFLAGS:-} -fcommon"
 export CXXFLAGS="${CXXFLAGS:-} -fcommon"
+python setup.py build
+DEEPEP_SO_PATH=$(find build -maxdepth 2 -type f -name 'deep_ep_cpp*.so' | head -n 1)
+if [ -z "${DEEPEP_SO_PATH}" ] ; then
+  echo "Failed to find built deep_ep_cpp shared object under /opt/DeepEP/build"
+  exit 1
+fi
+DEEPEP_SO_BASENAME=$(basename "${DEEPEP_SO_PATH}")
+if [ ! -e "/opt/DeepEP/${DEEPEP_SO_BASENAME}" ] ; then
+  ln -sf "${DEEPEP_SO_PATH}" "/opt/DeepEP/${DEEPEP_SO_BASENAME}"
+fi
+ln -sf "${DEEPEP_SO_PATH}" /opt/DeepEP/deep_ep_cpp.so
+TORCH_LIB_DIR=$(python3 - <<'PY'
+import pathlib
+import torch
+print(pathlib.Path(torch.__file__).resolve().parent / 'lib')
+PY
+)
+if [ -d "${TORCH_LIB_DIR}" ] ; then
+  export LD_LIBRARY_PATH="${TORCH_LIB_DIR}:${LD_LIBRARY_PATH:-}"
+fi
+python3 - <<'PY'
+import importlib
+import sys
+sys.path.insert(0, '/opt/DeepEP')
+mod = importlib.import_module('deep_ep_cpp')
+print(f"validated source-tree import: {getattr(mod, '__file__', '')}")
+PY
 MAX_JOBS=${ENV_BUILD_AND_DOWNLOAD_PARALLEL} pip wheel --no-build-isolation . -w /buildDeepEP
 cd /
 rm -rf /tmp/deepep
