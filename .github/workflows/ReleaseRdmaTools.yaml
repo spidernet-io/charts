@@ -4,7 +4,8 @@ env:
   CHART_PATH: rdma-tools/chart
   DOCKERFILE_PATH: rdma-tools/image
   IMAGE_NAME: rdma-tools
-  BUILD_PLATFORM: linux/amd64,linux/arm64
+  BUILD_PLATFORM: linux/amd64
+  LIGHT_BUILD_PLATFORM: linux/amd64,linux/arm64
   GEN_DOCKERFILE_SCRIPT: rdma-tools/image/generateDockerfile.sh
   CODE_SHA: ''
 
@@ -86,7 +87,7 @@ jobs:
       dockerfile_dirctory: ${{ env.DOCKERFILE_PATH }}
       generateDockerfileCmd: ${{ env.GEN_DOCKERFILE_SCRIPT }}
       image_name: ${{ env.IMAGE_NAME }}
-      build_platform: ${{ env.BUILD_PLATFORM }}
+      build_platform: ${{ env.LIGHT_BUILD_PLATFORM }}
       image_tag: ${{ steps.generate_dockerfile.outputs.image_tag }}
     steps:
       - name: Get information
