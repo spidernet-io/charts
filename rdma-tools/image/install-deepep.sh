@@ -30,10 +30,27 @@ NVSHMEM_VERSION=${NVSHMEM_VERSION%-*}
 apt-get update
 apt-get install -y --no-install-recommends xz-utils
 
+HOST_ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
+if [ "${HOST_ARCH}" != "amd64" ] && [ "${HOST_ARCH}" != "x86_64" ] ; then
+  echo "unsupported architecture for DeepEP install: ${HOST_ARCH}" >&2
+  exit 1
+fi
+
 rm -rf /opt/nvshmem || true
 mkdir -p /opt/nvshmem
 
-NVSHMEM_TARBALL_URL="https://developer.download.nvidia.cn/compute/redist/nvshmem/${NVSHMEM_VERSION}/builds/cuda12/txz/agnostic/x64/libnvshmem-linux-x86_64-${NVSHMEM_VERSION}_cuda12-archive.tar.xz"
+case "${HOST_ARCH}" in
+  amd64|x86_64)
+    NVSHMEM_URL_ARCH_DIR=x64
+    NVSHMEM_URL_ARCH_TAG=x86_64
+    ;;
+  *)
+    echo "unsupported architecture for NVSHMEM download: ${HOST_ARCH}" >&2
+    exit 1
+    ;;
+esac
+NVSHMEM_TARBALL_URL="https://developer.download.nvidia.cn/compute/redist/nvshmem/${NVSHMEM_VERSION}/builds/cuda12/txz/agnostic/${NVSHMEM_URL_ARCH_DIR}/libnvshmem-linux-${NVSHMEM_URL_ARCH_TAG}-${NVSHMEM_VERSION}_cuda12-archive.tar.xz"
+echo "downloading NVSHMEM for ${HOST_ARCH}: ${NVSHMEM_TARBALL_URL}"
 curl -fsSL -o /tmp/nvshmem.tar.xz "${NVSHMEM_TARBALL_URL}"
 
 rm -rf /tmp/nvshmem-extract || true
@@ -109,6 +126,7 @@ sys.path.insert(0, '/opt/DeepEP')
 mod = importlib.import_module('deep_ep_cpp')
 print(f"validated source-tree import: {getattr(mod, '__file__', '')}")
 PY
+
 MAX_JOBS=${ENV_BUILD_AND_DOWNLOAD_PARALLEL} pip wheel --no-build-isolation . -w /buildDeepEP
 cd /
 rm -rf /tmp/deepep
