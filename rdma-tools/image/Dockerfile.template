@@ -27,9 +27,6 @@ ENV ENV_DOWNLOAD_OFED_DEB_SOURCE=<<ENV_DOWNLOAD_OFED_DEB_SOURCE>>
 ENV ENV_VERSION_CUDA_SAMPLE=<<ENV_VERSION_CUDA_SAMPLE>>
 ENV ENV_GDRCOPY_COMMIT=<<ENV_GDRCOPY_COMMIT>>
 ENV ENV_VERSION_NVBANDWIDTH=<<ENV_VERSION_NVBANDWIDTH>>
-ENV ENV_DEEPEP_VERSION=<<ENV_DEEPEP_VERSION>>
-ENV ENV_DEEPGEMM_VERSION=<<ENV_DEEPGEMM_VERSION>>
-ENV ENV_UCX_VERSION=<<ENV_UCX_VERSION>>
 ENV ENV_NVSHMEM_VERSION=<<ENV_NVSHMEM_VERSION>>
 ENV ENV_CMAKE_CUDA_ARCHITECTURES=<<ENV_CMAKE_CUDA_ARCHITECTURES>>
 ENV ENV_BUILD_AND_DOWNLOAD_PARALLEL=<<ENV_BUILD_AND_DOWNLOAD_PARALLEL>>
@@ -62,38 +59,11 @@ RUN mkdir /buildGdrcopy || true
 RUN mkdir /buildNvbandwidth || true 
 RUN mkdir /buildCudaSample || true 
 RUN mkdir /buildnccltest || true 
-##DEEPEP_BEGIN
-RUN mkdir /buildDeepEP || true 
-RUN mkdir /buildDeepGEMM || true 
-RUN mkdir -p /opt/deepep-tests || true 
-RUN mkdir -p /opt/deepep-src || true 
-RUN mkdir -p /opt/deepgemm-src || true 
-##DEEPEP_END
 RUN mkdir -p /opt/nvshmem || true 
 
 COPY /install-tools.sh /install-tools.sh
-##DEEPEP_BEGIN
-COPY /install-deepep.sh /install-deepep.sh
-##DEEPEP_END
-COPY /install-ucx.sh /install-ucx.sh
-
-##DEEPEP_BEGIN
 RUN chmod +x /install-tools.sh \
-    && ENV_INSTALL_MODE=buildtools-deepep /install-tools.sh \
     && rm -f /install-tools.sh
-
-RUN chmod +x /install-deepep.sh \
-    && /install-deepep.sh \
-    && chmod +x /install-ucx.sh \
-    && /install-ucx.sh
-##DEEPEP_END
-
-##NO_DEEPEP_BEGIN
-RUN chmod +x /install-tools.sh \
-    && rm -f /install-tools.sh \
-    && chmod +x /install-ucx.sh \
-    && /install-ucx.sh
-##NO_DEEPEP_END
 
 #========== root image ==============
 FROM <<ENV_BASEIMAGE_FULL_NAME>> AS rootfs
@@ -138,19 +108,10 @@ RUN apt-get update
 COPY --from=buildtools /buildperftest/bin/*   /usr/bin/
 COPY --from=buildtools /buildnccltest/*       /usr/bin/
 COPY --from=buildtools /opt/hpcx              /opt/hpcx
-##DEEPEP_BEGIN
-COPY --from=buildtools /opt/DeepEP            /opt/DeepEP
-COPY --from=buildtools /opt/DeepGEMM          /opt/DeepGEMM
-##DEEPEP_END
 COPY --from=buildtools /buildCudaSample/*     /usr/bin/
 COPY --from=buildtools /buildGdrcopy          /buildGdrcopy
 COPY --from=buildtools /buildNvbandwidth/*     /usr/bin/
 COPY --from=buildtools /usr/local/bin/tcpdump  /usr/local/bin/tcpdump
-##DEEPEP_BEGIN
-COPY --from=buildtools /buildDeepEP           /buildDeepEP
-COPY --from=buildtools /buildDeepGEMM         /buildDeepGEMM
-##DEEPEP_END
-COPY --from=buildtools /buildUcxRootfs/usr/local/ /usr/local/
 COPY --from=buildtools /opt/nvshmem          /opt/nvshmem
 
 COPY --from=buildserver /server/echo-server  /usr/bin/
@@ -170,24 +131,21 @@ ENV HPCX_SHARP_DIR=/opt/hpcx/sharp
 ENV HPCX_NCCL_RDMA_SHARP_PLUGIN_DIR=/opt/hpcx/nccl_rdma_sharp_plugin
 ENV HPCX_HCOLL_DIR=/opt/hpcx/hcoll
 ENV HPCX_MPI_DIR=/opt/hpcx/ompi
-ENV HPCX_OSHMEM_DIR=/opt/hpcx/ompi
 ENV HPCX_MPI_TESTS_DIR=/opt/hpcx/ompi/tests
 ENV HPCX_OSU_DIR=/opt/hpcx/ompi/tests/osu-micro-benchmarks
 ENV HPCX_OSU_CUDA_DIR=/opt/hpcx/ompi/tests/osu-micro-benchmarks-cuda
 ENV HPCX_IPM_DIR=""
 ENV HPCX_CLUSTERKIT_DIR=/opt/hpcx/clusterkit
-ENV OMPI_HOME=/opt/hpcx/ompi
-ENV MPI_HOME=/opt/hpcx/ompi
-ENV OSHMEM_HOME=/opt/hpcx/ompi
-ENV OPAL_PREFIX=/opt/hpcx/ompi
-ENV DEEPEP_DIR=/opt/DeepEP
-ENV DEEPGEMM_DIR=/opt/DeepGEMM
+ENV HPCX_OSHMEM_DIR=/opt/hpcx/ompi
+ENV HPCX_MPI_HOME=/opt/hpcx/ompi
+ENV HPCX_OSHMEM_HOME=/opt/hpcx/ompi
+ENV HPCX_OPAL_PREFIX=/opt/hpcx/ompi
 ENV NVSHMEM_DIR=/opt/nvshmem
 ENV TORCH_LIB_DIR=/usr/local/lib/python3.10/dist-packages/torch/lib
 ENV OLD_PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV PATH=/opt/hpcx/sharp/bin:/opt/hpcx/clusterkit/bin:/opt/hpcx/hcoll/bin:/opt/hpcx/ucc/bin:/opt/hpcx/ucx/bin:/opt/hpcx/ompi/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH=/opt/hpcx/sharp/bin:/opt/hpcx/clusterkit/bin:/opt/hpcx/hcoll/bin:/opt/hpcx/ompi/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV OLD_LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:<<ENV_LD_LIBRARY_PATH>>
-ENV LD_LIBRARY_PATH=<<ENV_LD_LIBRARY_PATH>>:/usr/local/lib/python3.10/dist-packages/torch/lib:/opt/nvshmem/lib:/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ucc/lib/ucc:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib/ucx:/opt/hpcx/ucx/lib:/opt/hpcx/sharp/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+ENV LD_LIBRARY_PATH=<<ENV_LD_LIBRARY_PATH>>:/usr/local/lib/python3.10/dist-packages/torch/lib:/opt/nvshmem/lib:/opt/hpcx/ompi/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 ENV OLD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs
 ENV LIBRARY_PATH=/opt/hpcx/nccl_rdma_sharp_plugin/lib:/opt/hpcx/ompi/lib:/opt/hpcx/sharp/lib:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib:/opt/hpcx/hcoll/lib:/opt/hpcx/ompi/lib:/usr/local/cuda/lib64/stubs
 ENV OLD_CPATH=""
