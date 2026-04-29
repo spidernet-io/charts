@@ -9,50 +9,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-ENV_INSTALL_MODE=${ENV_INSTALL_MODE:-"rootfs"}
-
-if [ "${ENV_INSTALL_MODE}" = "buildtools-deepep" ] ; then
-  if [ -z "${ENV_BASEIMAGE_CUDA_VERISON:-}" ] ; then
-    exit 0
-  fi
-
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update
-  apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    patch \
-    curl \
-    wget \
-    vim \
-    ninja-build \
-    libtool \
-    autoconf \
-    automake \
-    pkg-config \
-    m4 \
-    libopenmpi-dev \
-    libnuma-dev \
-    numactl \
-    librdmacm-dev \
-    libibumad-dev \
-    libibverbs-dev \
-    libnl-3-dev \
-    libnl-route-3-dev \
-    ibverbs-providers \
-    python3-dev \
-    python3-pip \
-    python3-venv \
-    python-is-python3 \
-    unzip \
-    ca-certificates
-
-  apt-get clean
-  rm -rf /var/lib/apt/lists/*
-  exit 0
-fi
-
 
 # from https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox
 MELLANOX_PUBLIC_KEY="\
@@ -218,64 +174,12 @@ apt-get update
 apt-get install -y --no-install-recommends wget gnupg2
 
 # tzdata is one of the dependencies and a timezone must be set
-apt-get install -y --no-install-recommends tzdata
+# to avoid interactive prompt when it is being installed
 ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 
 InstallOfedRepo
 apt-get install -y --no-install-recommends "${packages[@]}"
 InstallSSH
-
- if [ -n "${ENV_BASEIMAGE_CUDA_VERISON:-}" ] ; then
-  apt-get install -y --no-install-recommends \
-    python3 \
-    python3-dev \
-    python3-pip \
-    python-is-python3 \
-    ca-certificates
-
-  if [ "${ENV_INSTALL_CUDA_TOOLKIT:-false}" = "true" ] ; then
-    apt-get install -y --no-install-recommends wget gnupg2
-    cd /tmp
-    rm -f cuda-keyring.deb
-    wget --no-check-certificate -O cuda-keyring.deb "${ENV_CUDA_DEB_SOURCE}"
-    dpkg -i cuda-keyring.deb
-    rm -f cuda-keyring.deb
-    apt-get update
-
-    CUDA_SHORT=$(echo "${ENV_BASEIMAGE_CUDA_VERISON}" | cut -d. -f1,2)
-    CUDA_DASH=$(echo "${CUDA_SHORT}" | tr '.' '-')
-    apt-get install -y --no-install-recommends \
-      gcc \
-      g++ \
-      make \
-      ninja-build \
-      "cuda-toolkit-${CUDA_DASH}"
-
-    if [ -d "/usr/local/cuda-${CUDA_SHORT}" ] ; then
-      ln -sf "/usr/local/cuda-${CUDA_SHORT}" /usr/local/cuda
-    fi
-  fi
-
-  python3 -m pip install --upgrade pip
-  CUDA_SHORT=$(echo "${ENV_BASEIMAGE_CUDA_VERISON}" | cut -d. -f1,2)
-  CU_VER=$(echo "${CUDA_SHORT}" | tr -d .)
-  pip3 install torch numpy packaging --extra-index-url https://download.pytorch.org/whl/cu${CU_VER}
-  pip3 install /buildDeepEP/*.whl /buildDeepGEMM/*.whl --force-reinstall
-  python3 - <<'PY'
-import importlib
-modules = ["deep_ep", "deep_gemm"]
-for name in modules:
-    mod = importlib.import_module(name)
-    print(f"validated import: {name} -> {getattr(mod, '__file__', '')}")
-PY
-  rm -rf /buildDeepEP /buildDeepGEMM
-
-  echo "/usr/local/lib" > /etc/ld.so.conf.d/ucx.conf
-  echo "/opt/nvshmem/lib" > /etc/ld.so.conf.d/nvshmem.conf
-  ldconfig
-
-  ln -sf "/usr/lib/$(uname -m)-linux-gnu/libmlx5.so.1" "/usr/lib/$(uname -m)-linux-gnu/libmlx5.so"
-fi
 
 apt-get purge --auto-remove
 apt-get clean
