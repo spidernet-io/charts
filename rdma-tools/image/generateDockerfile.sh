@@ -120,7 +120,8 @@ export ENV_VERSION_PERFTEST=${ENV_VERSION_PERFTEST:-"24.04.0-0.41"}
 export ENV_VERSION_LIBCAP=${ENV_VERSION_LIBCAP:-"libpcap-1.10.5"}
 export ENV_VERSION_TCPDUMP=${ENV_VERSION_TCPDUMP:-"tcpdump-4.99.5"}
 
-export ENV_DOWNLOAD_OFED_DEB_SOURCE="https://linux.mellanox.com/public/repo/mlnx_ofed/latest/ubuntu22.04/mellanox_mlnx_ofed.list"
+export ENV_MLNX_OFED_VERSION=${ENV_MLNX_OFED_VERSION:-"24.10-4.1.4.0"}
+export ENV_DOWNLOAD_OFED_DEB_SOURCE=${ENV_DOWNLOAD_OFED_DEB_SOURCE:-"https://linux.mellanox.com/public/repo/mlnx_ofed/${ENV_MLNX_OFED_VERSION}/ubuntu22.04/mellanox_mlnx_ofed.list"}
 
 echo "------------------------ Generate Dockerfile ---------------------------"
 
